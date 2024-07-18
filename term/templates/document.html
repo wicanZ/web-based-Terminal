@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Terminal Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #aeaaaa;
+            color: #3c2424;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #eee;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .example {
+            background-color: #f9f9f9;
+            border-left: 4px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <h1>Web Terminal Documentation</h1>
+
+        <h2>Overview</h2>
+        <p>The Web Terminal is a browser-based command-line interface that simulates the functionalities of a real terminal. It is built using HTML, CSS, and JavaScript and provides a robust environment for executing a variety of commands, managing multiple tabs, and playing interactive games.</p>
+
+        <h2>Features</h2>
+        <ul>
+            <li><strong>Command Execution:</strong> Execute commands like <code>ls</code>, <code>cd</code>, <code>mkdir</code>, <code>calc</code>, <code>weather</code>, <code>ps</code>, <code>uname</code>, <code>kill</code>, <code>df</code>, <code>uptime</code>, <code>whoami</code>, <code>background</code>, <code>foreground</code>, <code>help</code>, and more.</li>
+            <li><strong>Tab System:</strong> Manage multiple terminal tabs with persistent state across sessions.</li>
+            <li><strong>Persistent History:</strong> Save and load command history and output for each tab.</li>
+            <li><strong>Command Suggestions:</strong> Suggest similar commands if a command is not found.</li>
+            <li><strong>Interactive Games:</strong> Play games like Snake, Tetris, Sudoku, and 2048.</li>
+            <li><strong>Extensibility:</strong> Easily add new commands by creating JavaScript files.</li>
+        </ul>
+
+        <h2>Getting Started</h2>
+        <h3>Loading the Terminal</h3>
+        <p>Open the web terminal by navigating to the provided URL in your web browser. The terminal interface will be displayed with a prompt ready to accept commands.</p>
+
+        <h3>Basic Commands</h3>
+        <ul>
+            <li><code>ls:</code> List directory contents.</li>
+            <li><code>cd [directory]:</code> Change the current directory.</li>
+            <li><code>mkdir [directory]:</code> Create a new directory.</li>
+            <li><code>calc [expression]:</code> Evaluate a mathematical expression.</li>
+            <li><code>weather:</code> Get the current weather for your location.</li>
+            <li><code>ps:</code> Display currently active processes.</li>
+            <li><code>uname:</code> Display system information.</li>
+            <li><code>kill [process]:</code> Terminate a process.</li>
+            <li><code>df:</code> Display disk space usage.</li>
+            <li><code>uptime:</code> Show how long the system has been running.</li>
+            <li><code>whoami:</code> Display the current user.</li>
+            <li><code>background [color]:</code> Change the terminal background color.</li>
+            <li><code>foreground [color]:</code> Change the terminal text color.</li>
+            <li><code>help:</code> Display a list of available commands and their descriptions.</li>
+        </ul>
+
+        <h2>Adding New Commands</h2>
+        <p>To add a new command:</p>
+        <h3>Create a JavaScript File</h3>
+        <p>Add a new JavaScript file in the <code>static/commands/</code> directory. The file should export an object with <code>execute</code> and <code>description</code> properties.</p>
+        
+        <div class="example">
+            <h4>Example: <code>fortune.js</code></h4>
+            <pre><code id="fortune-code">const fortunes = [
+    "You will have a great day!",
+    "Good news will come your way soon.",
+    "Expect the unexpected."
+];
+
+export default {
+    execute: function(args, terminal) {
+        const randomIndex = Math.floor(Math.random() * fortunes.length);
+        terminal.animateTextLine(fortunes[randomIndex]);
+    },
+    description: 'Displays a random fortune message'
+};</code>
+                <button class="copy-button" onclick="copyToClipboard('fortune-code')">Copy</button>
+            </pre>
+        </div>
+        <p>The command will be automatically loaded and registered when the terminal initializes.</p>
+
+        <h2>Handling User Input</h2>
+        <p>The terminal captures user input through the <code>inputElement</code>. When the user presses Enter, the input is processed, and the corresponding command is executed.</p>
+        
+        <div class="example">
+            <h4>Example: <code>handleKeyDown</code> Method</h4>
+            <pre><code id="handle-keydown-code">handleKeyDown(event) {
+    if (event.key === 'Enter') {
+        const command = this.inputElement.value.trim();
+        this.executeCommand(command);
+    } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        // Handle history navigation
+    }
+    // Other key handling code...
+}</code>
+                <button class="copy-button" onclick="copyToClipboard('handle-keydown-code')">Copy</button>
+            </pre>
+        </div>
+
+        <h2>Saving and Loading History</h2>
+        <p>The terminal saves the history and output of each tab to the local storage. This ensures that the user can continue from where they left off even after refreshing the page or reopening the terminal.</p>
+        
+
+        <h1>Adding Custom Commands to Web Terminal</h1>
+    <p>This guide explains how to add custom commands to your web terminal application. Follow the steps below to create and integrate your own commands.</p>
+
+    <h2>Step-by-Step Guide</h2>
+
+    <h3>1. Create the Command File</h3>
+    <p>Create a JavaScript file for your command in the <code>/static/commands/</code> directory. For this example, we'll create a command called <code>hello.js</code> that prints a greeting message.</p>
+
+    <pre><code>export default {
+    execute: function(args, terminal) {
+        terminal.displayOutput('Hello, World!');
+    },
+    description: 'Prints a greeting message'
+};</code></pre>
+
+    <h3>2. Explanation of the Command File</h3>
+    <p>Let's break down the <code>hello.js</code> command file line by line:</p>
+    
+    <pre><code>export default {</code></pre>
+    <p>This line exports an object as the default export of the module. This object will define the command.</p>
+
+    <pre><code>    execute: function(args, terminal) {</code></pre>
+    <p>This line defines the <code>execute</code> method, which will be called when the command is run. It takes two arguments: <code>args</code> (an array of arguments passed to the command) and <code>terminal</code> (an object representing the terminal interface).</p>
+
+    <pre><code>        terminal.displayOutput('Hello, World!');</code></pre>
+    <p>This line calls the <code>displayOutput</code> method on the terminal object to print the message <code>'Hello, World!'</code> to the terminal.</p>
+
+    <pre><code>    },</code></pre>
+    <p>This line closes the <code>execute</code> method.</p>
+
+    <pre><code>    description: 'Prints a greeting message'</code></pre>
+    <p>This line defines the <code>description</code> property of the command, which is a brief description of what the command does. This is useful for help commands or documentation.</p>
+
+    <pre><code>};</code></pre>
+    <p>This line closes the exported object.</p>
+
+    <h3>3. Load the Command</h3>
+    <p>Ensure your terminal application loads the command. If you have implemented the <code>loadCommand</code> function, it should automatically load all commands in the <code>/static/commands/</code> directory.</p>
+    
+    <h3>4. Example Command Execution</h3>
+    <p>After adding the <code>hello.js</code> file and loading it, you can execute the command in the terminal by typing:</p>
+    
+    <pre><code>$ hello</code></pre>
+
+    <p>The output will be:</p>
+    
+    <pre><code>Hello, World!</code></pre>
+
+    <h2>Additional Notes</h2>
+    <p>Make sure the command file is properly placed in the <code>/static/commands/</code> directory and that your terminal application has the logic to load and execute commands from this directory.</p>
+    <p>Always test your commands thoroughly to ensure they behave as expected and handle errors gracefully.</p>
+
+    <h2>Conclusion</h2>
+    <p>By following these steps, you can create and add custom commands to your web terminal application, enhancing its functionality and providing more interactive features for users.</p>
+        <div class="example">
+            <h4>Example: <code>saveHistory</code> and <code>loadHistory</code> Methods</h4>
+            <pre><code id="save-load-history-code">saveHistory() {
+    const activeTabHistory = this.commandHistory[this.activeTab] || [];
+    const outputHTML = this.outputElement.innerHTML;
+    const historyData = {
+        commandHistory: activeTabHistory,
+        outputHTML: outputHTML
+    };
+    localStorage.setItem(`tabHistory_${this.activeTab}`, JSON.stringify(historyData));
+}
+
+loadHistory() {
+    const historyData = JSON.parse(localStorage.getItem(`tabHistory_${this.activeTab}`));
+    if (historyData) {
+        this.commandHistory[this.activeTab] = historyData.commandHistory || [];
+        this.outputElement.innerHTML = historyData.outputHTML || '';
+    }
+}</code>
+                <button class="copy-button" onclick="copyToClipboard('save-load-history-code')">Copy</button>
+            </pre>
+        </div>
+
+        <h2>Interactive Games</h2>
+        <p>The terminal supports interactive games like Snake, Tetris, Sudoku, and 2048. To play a game, simply type the game command (e.g., <code>snake</code>, <code>tetris</code>, <code>sudoku</code>, <code>2048</code>). The game will open in a popup, and you can return to the terminal by pressing Esc or Ctrl + C.</p>
+
+        <h2>Extending the Terminal</h2>
+        <p>The terminal is designed to be easily extensible. Developers can add new commands by following the pattern established in existing command files. This allows for continuous enhancement of the terminal's capabilities.</p>
+
+        <h2>Conclusion</h2>
+        <p>The Web-Based Terminal is a versatile tool that simulates a real command-line interface in the browser. Its extensibility, combined with features like persistent history and interactive games, makes it a powerful and fun utility. By following the guidelines provided, you can easily add new commands and customize the terminal to fit your needs.</p>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const copyText = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert("Copied to clipboard!");
+            }).catch(err => {
+                console.error("Failed to copy: ", err);
+            });
+        }
+    </script>
+</body>
+</html>

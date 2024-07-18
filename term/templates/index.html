@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Term</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+</head>
+
+<body>
+    <div id="terminal-container">
+        <div id="menu-bar">
+            <div>
+                File
+                <div class="dropdown-content">
+                    <a href="#" id="new-tab">New Tab</a>
+                    <a href="#" id="open">Open</a>
+                    <a href="#" id="save">Save</a>
+                </div>
+            </div>
+            <div>
+                Edit
+                <div class="dropdown-content">
+                    <a href="#">Undo</a>
+                    <a href="#">Redo</a>
+                    <a href="#">Cut</a>
+                    <a href="#">Copy</a>
+                    <a href="#">Paste</a>
+                </div>
+            </div>
+            <div>
+                View
+                <div class="dropdown-content">
+                    <button id="increaseFont" title="Increase Font Size">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <button id="decreaseFont" title="Decrease Font Size">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <button id="theme1">Theme 1</button>
+                    <button id="theme2">Theme 2</button>
+                    <button id="theme3">Theme 3</button>
+                    <a href="#">Reset Zoom</a>
+                </div>
+            </div>
+            <div>
+                Help
+                <div class="dropdown-content">
+                    <a href="{% url 'doc' %}">Documentation</a>
+                    <a href="#">About</a>
+                </div>
+            </div>
+        </div>
+        <div id="tabs">
+            <button id="new-tab-button">+</button>
+        </div>
+        <div id="terminal">
+            <div id="ascii-art">
+
+            </div>
+            <div id="output"></div>
+            <div id="python-input" class="python-mode">
+                <span class="promptc" id="python-prompt"></span>
+                <input type="text" class="input blinking-cursor" id="python-input-field">
+            </div>
+            <div class="command">
+                <span class="promptc" id="promptc">trsh $</span>
+                <input type="text" class="input blinking-cursor" id="input" autofocus>
+            </div>
+
+        </div>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="file" accept=".txt,.py,.html,.css,.js,.json,.md,.csv,.mp3">
+        </form>
+
+        <!-- <div id="openModalButton">open</div> -->
+        <div id="myModal1" class="modal centered-div">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('myModal1')">&times;</span>
+                <span id="closeModalButton" class="close">&times;</span>
+                <p>shortcut key!</p>
+                <div class="shortcut">Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy.</div>
+                <div class="shortcut">Press <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste.</div>
+                <div class="shortcut">Press <kbd>Ctrl</kbd> + <kbd>X</kbd> to cut.</div>
+            </div>
+        </div>
+
+
+
+        <div id="settingsMenu" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('settingsMenu')">&times;</span>
+                <h2>Settings</h2>
+                <!-- Settings options here -->
+                <div>
+                    <label for="themeSelect">Theme:</label>
+                    <select id="themeSelect">
+                        <option value="red">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fontSize">Font Size:</label>
+                    <input type="number" id="fontSize" value="16" min="10" max="30">
+                </div>
+            </div>
+        </div>
+
+        <!-- <div id="terminal">
+            <pre id="output"></pre>
+            <input type="text" id="command-input" autofocus>
+        </div> -->
+    </div>
+
+    <script src="{% static 'index.js' %}"></script>
+    <script src="{% static 'term.js' %}"></script>
+    <script>
+        // Fetch the JSON file
+        fetch("{% static 'data.json' %}")
+            .then(response => response.json())
+            .then(data => {
+                // console.log(data); // Do something with the data
+            })
+            .catch(error => console.error('Error fetching JSON:', error));
+    </script>
+</body>
+
+</html>

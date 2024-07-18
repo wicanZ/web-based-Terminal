@@ -1,0 +1,650 @@
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: monospace;
+    overflow: hidden;
+    background-color: #151414;
+}
+
+.directory {
+    color: blue;
+    /* Example color for directories */
+    font-weight: bold;
+}
+
+.file {
+    color: green;
+    /* Example color for files */
+    font-style: italic;
+}
+
+/*
+modal for learn cmd 
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+} */
+
+
+/* remove output then command will be typing from above */
+/* #output {
+    flex-grow: 1;
+    overflow-y: auto;
+} 
+.command {
+    display: flex;
+    align-items: center;
+}
+
+.promptc {
+    margin-right: 10px;
+}
+
+.input {
+    flex-grow: 1;
+    background: none;
+    border: none;
+    outline: none;
+} */
+
+#fileInput {
+    display: none;
+}
+
+.blinking-cursor::after {
+    content: '|';
+    animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+    to {
+        visibility: hidden;
+    }
+}
+
+#ascii-art {
+    white-space: pre;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li.command-item {
+    cursor: pointer;
+    padding: 5px;
+}
+
+li.selected {
+    background-color: #151414;
+    /* Background color for selected item */
+}
+
+/* Modal Container */
+.modal-content {
+    background-color: #1a1818;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    top: 50%;
+    /* Center vertically */
+    left: 50%;
+    /* Center horizontally */
+    transform: translate(-50%, -50%);
+    /* Centering trick */
+    background-color: rgb(35, 34, 34);
+    /* Background color */
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    /* Optional: Add shadow */
+}
+
+/* Modal Content/Box */
+.modal-cotent {
+    position: relative;
+
+}
+
+.centered-div {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.shortcut {
+    padding: 10px;
+    border: 1px solid #ccc;
+    display: inline-block;
+    margin: 20px;
+}
+
+/* Close Button */
+.close {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+
+/* new 1 here  */
+
+
+
+
+#terminal-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    user-select: text;
+    /* Ensure text selection is allowed */
+}
+
+#menu-bar {
+    background-color: #555753;
+    padding: 5px 10px;
+    display: flex;
+}
+
+#menu-bar>div {
+    position: relative;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #555753;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    min-width: 150px;
+    /* Adjust as needed */
+}
+
+.dropdown-content a,
+.dropdown-content button {
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    display: block;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-content a:hover,
+.dropdown-content button:hover {
+    background-color: #444;
+}
+
+.dropdown-content button svg {
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+#menu-bar>div:hover .dropdown-content {
+    display: block;
+}
+
+#tabs {
+    display: flex;
+    background-color: #464444;
+    padding: 5px;
+    min-height: 40px;
+    overflow-x: auto;
+}
+
+#tabs button,
+#tabs div {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 10px;
+    margin-right: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#tabs button {
+    font-size: 18px;
+}
+
+#tabs div.active {
+    background: #98dc86;
+}
+
+#tabs div {
+    display: flex;
+    align-items: center;
+}
+
+#tabs div span {
+    flex-grow: 1;
+}
+
+#tabs div input {
+    background: #444;
+    border: none;
+    color: white;
+    width: 100px;
+}
+
+
+/* 
+#terminal {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    display: flex;
+    flex-direction: column;
+    user-select: text;
+    border: 2px dashed blueviolet;
+    margin: 20px
+}
+
+*/ 
+#aboutme-popup {
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.3s ease-in-out;
+}
+
+/* #terminal {
+    --border-color: #9c27b0;
+    --background-color: #121212;
+    --text-color: #e0e0e0;
+    --prompt-color: #9c27b0;
+    --input-color: #e0e0e0;
+    --title-bar-color: #2d2d2d;
+    --box-shadow: 0 0 20px rgba(156, 39, 176, 0.6);
+    --border-radius: 12px;
+    --font-size: 14px;
+
+} */
+
+#backup {
+    font-size: 14px; /* Default font size */
+    line-height: 1.5; /* Default line height */
+    background: #121212; /* Default background color */
+    color: #e0e0e0; /* Default text color */
+    box-shadow: 0 0 20px rgba(156, 39, 176, 0.6); /* Default box shadow */
+    font-family: 'Roboto Mono', 'Courier New', Courier, monospace; /* Default font */
+    border: 2px solid #9c27b0; /* Default border color */
+}
+
+
+#terminal {
+    flex-grow: 1; /* Allow the terminal to expand */
+    padding: 20px; /* Add padding inside the terminal */
+    overflow-y: auto; /* Enable vertical scrolling */
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    display: flex;
+    flex-direction: column; /* Align children in a column */
+    user-select: text; /* Allow text selection */
+    background: #1e1e1e; /* Dark background for terminal */
+    color: #cfcfcf; /* Light text color for contrast */
+    border: 2px solid #00ff00; /* Green border for classic terminal look */
+    margin: 20px; /* Add margin around the terminal */
+    border-radius: 10px; /* Rounded corners for a softer look */
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5); /* Glowing green shadow */
+    font-family: 'Courier New', Courier, monospace; /* Monospace font for terminal text */
+    font-size: 14px; /* Size of the terminal text */
+    line-height: 1.5; /* Space between lines for readability */
+    position: relative; /* Position relative for pseudo-elements */
+    height: 100%; /* Ensure terminal takes full height of its container */
+}
+
+/* Add a title bar with close, minimize, and maximize buttons */
+#terminal::before {
+    content: '';
+    position: absolute;
+    top: -20px; /* Position it above the terminal */
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: #333; /* Dark title bar background */
+    border-top-left-radius: 10px; /* Match the terminal's border radius */
+    border-top-right-radius: 10px; /* Match the terminal's border radius */
+    border-bottom: 1px solid #00ff00; /* Green border to simulate the title bar */
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 255, 0, 0.3); /* Subtle shadow inside */
+}
+
+/* Add a border and shadow effect */
+#terminal::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px; /* Match the terminal's border radius */
+    pointer-events: none; /* Ensures it doesn’t interfere with clicks */
+}
+
+/* Terminal command prompt */
+#terminal .prompt {
+    color: #00ff00; /* Green color for the prompt */
+    font-weight: bold;
+}
+
+/* Terminal command input */
+#terminal .input {
+    color: #cfcfcf; /* Light text color for commands */
+}
+
+
+.error {
+    color: red;
+    font-weight: bold;
+}
+
+
+
+
+#ascii-art {
+    font-size: 20px;
+    color: green;
+    text-align: center;
+}
+
+#output {
+    margin-bottom: 10px;
+}
+
+.command {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.promptc {
+    margin-right: 5px;
+    color: #00ff00;
+    /* green */
+}
+
+.input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% {
+        border-color: transparent;
+    }
+}
+
+#python-input {
+    display: none;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+#python-prompt {
+    margin-right: 5px;
+    color: #00ff00;
+    /* green */
+}
+
+#python-input input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+}
+
+
+
+/* old below  */
+
+
+/* #output {
+    flex-grow: 1;
+    white-space: pre-wrap;
+} */
+
+#command-input {
+    border: none;
+    background: none;
+    color: #ffffff;
+    outline: none;
+    width: 100%;
+    font-family: monospace;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #868181;
+}
+
+h4,
+h2 {
+    color: #333;
+}
+
+@media screen and (max-width: 600px) {
+    table {
+        width: 100%;
+    }
+}
+
+
+
+/* 
+
+.command {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.promptc {
+    margin-right: 5px;
+    color: #00ff00;
+}
+
+.input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% {
+        border-color: transparent;
+    }
+}
+
+.python-mode .command {
+    display: none;
+}
+
+.python-mode #python-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.python-mode #python-prompt {
+    margin-right: 5px;
+    color: #00ff00;
+
+}
+
+.python-mode #python-input input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+} */
+
+/* music player cmd  */
+
+#add-music-button {
+    background-color: #121212;
+    color: #f0f0f0;
+    border: none;
+    box-shadow: 1px 3px 20px 3px;
+}
+.music-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    margin: 0 auto;
+}
+
+audio {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+ul li {
+    padding: 8px;
+    background-color: #1a1919;
+    border: 1px solid #190c0c;
+    margin-top: -1px; /* Prevent double borders */
+    cursor: pointer;
+}
+
+ul li:hover {
+    background-color: #4f3838;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.controls button {
+    background-color: #4caf50;
+    border: none;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.controls button:hover {
+    background-color: #45a049;
+}
+
+.controls button:active {
+    transform: translateY(2px);
+}
