@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Web-Based Terminal
 
 ## Overview
@@ -28,5 +29,10 @@ The Web-Based Terminal is a fully functional terminal emulator implemented using
    ```bash
    git clone https://github.com/your-username/web-based-terminal.git
    cd web-based-terminal
+   ```
 # wicanZ
+This
+=======
+>>>>>>> origin/main
 # web-based-Terminal
+*** This pasge is about terminal that support in web browser to run as terminal ***
