@@ -148,12 +148,14 @@ class Terminal {
         this.newTabButton = document.getElementById('new-tab-button');
         this.fileInput = document.getElementById('fileInput');
         this.uploadForm = document.getElementById('uploadForm');
+        this.loadingIndicator = document.getElementById('loading-indicator');
+
         this.terminalIndex = 1;
         this.activeTab = 0;
         this.tabStates = JSON.parse(localStorage.getItem('tabStates')) || {};
         this.commandHistory = [];
         this.historyIndex = 0;
-        this.currentDir = '/';
+        this.currentDir = localStorage.getItem('currentDir') || '/';
         this.pythonInterpreter = null;
         this.fontSize = 10;
         this.promptText = 'root@trsh';
@@ -162,6 +164,7 @@ class Terminal {
         this.audioElement = null;
         this.audioPlayer = null;
         this.commands = {};
+        this.commandCache = {};
         this.isScrolledToBottom = this.element.scrollHeight - this.element.clientHeight <= this.element.scrollTop + 1;
         this.typingSpeed = 50;
 
@@ -173,28 +176,66 @@ class Terminal {
 
         this.newTabButton.addEventListener('click', this.addNewTab.bind(this));
         this.initializeFirstTab();
-        this.styleTerm = new TerminalStyle(this);
-
+        this.style = new TerminalStyle(this.element);
+        //this.style.resetStyles();
         // this.newTabButton.addEventListener('click', () => this.addNewTab());
         // this.initializeFirstTab();
         this.loadStyleFromStorage();
         //this.checkLoginStatus();
-
-
-        const storedBackgroundColor = localStorage.getItem('terminalBackgroundColor');
-        if (storedBackgroundColor) {
-            this.element.style.backgroundColor = storedBackgroundColor;
-        }
-        const storedForegroundColor = localStorage.getItem('terminalForegroundColor');
-        if (storedForegroundColor) {
-            this.element.style.color = storedForegroundColor;
-        }
+        //document.addEventListener('keydown', (event) => this.handleShortcut(event));
         this.inputCallback = null;
         this.inputEnabled = true;
         this.isLoggedIn = false;
         this.username = null;
         this.ip = null;
+        this.applyLoadingIndicatorStyles();
+        this.displayQuizStartTime();
+        this.applySavedStyles() ;
+        this.pressedKeys = new Set();
+        document.addEventListener('keyup', (event) => this.handleKeyup(event));
     }
+
+    applySavedStyles() {
+        const savedStyle = localStorage.getItem('terminalStyle');
+        if (savedStyle) {
+            const style = JSON.parse(savedStyle);
+            this.style.setBorderColor(style.borderColor);
+            this.style.setBoxShadow(style.boxShadow);
+            this.style.setBackgroundColor(style.backgroundColor);
+            this.style.setTextColor(style.textColor);
+            this.style.setTitleBarColor(style.titleBarColor);
+            this.style.setBorderRadius(style.borderRadius);
+            this.style.setFontSize(style.fontSize);
+            this.style.setPromptColor(style.promptColor);
+            this.style.setInputColor(style.inputColor);
+            this.promptElement.textContent = style.promptText || '';
+        }
+    }
+
+    async displayQuizStartTime() {
+        try {
+            const response = await fetch('/get_quiz_start_time/');
+            if (response.ok) {
+                const result = await response.json();
+                const quizStartTime = new Date(result.start_time);
+                const now = new Date();
+
+                if (quizStartTime > now) {
+                    this.printLine(`Quiz will start at: ${quizStartTime}`);
+                } else {
+                    this.printLine('The quiz has already started or finished.');
+                }
+            } else {
+                this.printLine('Error: Unable to fetch quiz start time.');
+            }
+        } catch (error) {
+            this.printLine('Error: Unable to fetch quiz start time.');
+        }
+    }
+    getCurrentUser() {
+        return this.isLoggedIn ? this.username : 'Guest';
+    }
+
     async checkLoginStatus() {
         try {
             const response = await fetch('/login_status/');
@@ -300,7 +341,6 @@ class Terminal {
             this.printLine(line);
             await new Promise(resolve => setTimeout(resolve, this.typingSpeed));
         }
-        this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight + 10;
         if (this.isScrolledToBottom) {
             this.element.scrollTop = this.element.scrollHeight + 10;
@@ -350,14 +390,18 @@ class Terminal {
 
 
     handleKeyDown(event) {
+        //event.preventDefault();
+        this.pressedKeys.add(event.code);
+
         const inputLength = this.inputElement.value.length;
         if (event.key === 'Enter') {
             const command = this.inputElement.value.trim();
             const newCommand = document.createElement('div');
             newCommand.textContent = `${this.promptText}${this.currentDir}$ ${command}`;
-            newCommand.style.color = 'green';
+            newCommand.style.color = 'blue';
             this.outputElement.appendChild(newCommand);
             this.handleCommand(command);
+
             this.inputElement.value = '';
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
@@ -386,7 +430,33 @@ class Terminal {
             // Move cursor to the end of the input
             event.preventDefault();
             this.inputElement.setSelectionRange(inputLength, inputLength);
+        } else if (this.isShortcutPressed(event.code, 'ControlLeft', 'Slash')) {
+            event.preventDefault();
+            this.displayOutput('ctrl / work') ;
+            
+        }else if (this.isShortcutPressed(event.code , 'ControlLeft', 'KeyB')) {
+            event.preventDefault();
+            this.displayOutput('ctrl B work') ;
+            this.handleCommand('randomstyle'); // Example of executing a command via shortcut
+            this.inputElement.focus(); // Ensure input field is focused after shortcut
+        }else if (this.isShortcutPressed(event.code , 'ControlLeft', 'KeyF')) {
+            event.preventDefault();
+            this.displayOutput('ctrl F work') ;
+            this.handleCommand('randomstyle'); // Example of executing a command via shortcut
+            this.inputElement.focus(); // Ensure input field is focused after shortcut
         }
+    }
+
+    handleKeyup(event) {
+        this.pressedKeys.delete(event.code);
+    }
+
+    isShortcutPressed(...keys) {
+        return keys.every(key => this.pressedKeys.has(key));
+    }
+    focusInput() {
+        // Your logic to focus input
+        this.inputElement.focus();
     }
 
 
@@ -658,10 +728,8 @@ class Terminal {
     }
 
 
-
     // Method to handle command execution
     async handleCommand(command) {
-
         // Process the command
         const args = command.split(' ');
         const cmds = args[0].trim().toLowerCase();
@@ -674,6 +742,7 @@ class Terminal {
         }
         if (!this.inputEnabled) return;
 
+
         if (this.isLoggedIn || command.startsWith('login') || command.startsWith('register') || command.startsWith('help')) {
             if (!Array.isArray(this.commandHistory[this.activeTab])) {
                 this.commandHistory[this.activeTab] = [];
@@ -685,11 +754,13 @@ class Terminal {
             const [cmd, ...options] = command.trim().split(/\s+/); // Split command by any whitespace
 
             // Example command handling logic (replace with your own)
+
             if (cmd.toLowerCase() === '') {
                 this.outputElement.value = '';
             } else if (this.commands[cmd]) {
                 try {
                     await this.commands[cmd].execute(options, this); // Execute registered command  // args
+
                 } catch (error) {
                     this.displayOutput(`Error executing command '${cmd}': ${error.message}`);
                 }
@@ -903,6 +974,8 @@ class Terminal {
             // Scroll to the bottom of the output element
             outputElement.scrollTop = outputElement.scrollHeight;
         }
+
+
         if (this.isScrolledToBottom) {
             this.element.scrollTop = this.element.scrollHeight;
         }
@@ -917,9 +990,9 @@ class Terminal {
         // Store current scroll position
         const terminal = document.getElementById('terminal');
         const scrollPosition = terminal.scrollTop;
-    
+
         // Switch tab logic here...
-    
+
         // Restore scroll position
         terminal.scrollTop = scrollPosition;
     }
@@ -937,13 +1010,13 @@ class Terminal {
         this.outputElement.innerHTML = state.output;
         this.inputElement.value = state.command;
     }
-    
+
     addNewTab() {
         this.terminalIndex++;
         const tab = document.createElement('div');
         const tabName = document.createElement('span');
         tabName.textContent = `Tab ${this.terminalIndex}`;
-        this.switchTabPosition(this.terminalIndex) ;
+        this.switchTabPosition(this.terminalIndex);
         tabName.addEventListener('dblclick', (event) => this.renameTab(event));
         tab.appendChild(tabName);
 
@@ -971,7 +1044,7 @@ class Terminal {
         this.loadState();
         this.historyIndex = this.commandHistory[this.activeTab] ? this.commandHistory[this.activeTab].length : -1;
     }
-    
+
 
 
     closeTab(event) {
@@ -1037,42 +1110,7 @@ class Terminal {
         this.switchTab({ target: firstTab });
     }
 
-    initializeSettingsMenu() {
-        const themeSelect = document.getElementById('themeSelect');
-        const fontSizeInput = document.getElementById('fontSize');
 
-        themeSelect.addEventListener('change', (event) => {
-            this.setTheme(event.target.value);
-        });
-
-        fontSizeInput.addEventListener('input', (event) => {
-            this.setFontSize(event.target.value);
-        });
-    }
-    setTheme(themeName) {
-        const terminal = document.getElementById('terminal');
-        // Apply terminal styles
-        terminal.style.backgroundColor = themeName;
-        localStorage.setItem('theme', themeName);
-        this.promptElement.style.color = 'blue';
-        this.outputElement.style.color = 'white';
-        this.inputElement.style.color = 'white';
-    }
-
-
-    setFontSize(size) {
-        this.element.style.fontSize = `${size}px`;
-        localStorage.setItem('fontSize', size);
-    }
-
-    loadSettings() {
-        const theme = localStorage.getItem('theme') || 'black';
-        const fontSize = localStorage.getItem('fontSize') || '14';
-        this.setTheme(theme);
-        this.setFontSize(fontSize);
-        console.log(theme, fontSize);
-        //this.reset() ;
-    }
 
     suggestCommand(cmd) {
         const suggestions = Object.keys(this.commands).filter(command => this.isSimilar(command, cmd));
@@ -1112,8 +1150,52 @@ class Terminal {
         return distance(a, b) <= 2; // Adjust this value to set the threshold for similarity
     }
 
+    async loadCommand(fileName) {
+        const commandName = fileName.replace('.js', '');
+        this.showLoadingIndicator();
+        try {
+            const module = await import(`/static/commands/${fileName}`);
+            if (module.default && typeof module.default.execute === 'function') {
+                this.addCommand(commandName, module.default.execute.bind(module.default), module.default.description);
+                for (let [key, value] of Object.entries(module.default)) {
+                    if (key !== 'execute' && typeof value === 'function') {
+                        this.addCommand(`${commandName} ${key}`, value.bind(module.default), `Run ${commandName} ${key}`);
+                    }
+                }
+            } else {
+                throw new Error(`Invalid command module: ${fileName}. Missing execute function.`);
+            }
+        } catch (error) {
+            // console.error(`Error loading command ${fileName}:`, error);
+            this.displayOutput(`Error loading command ${commandName}: `); //${error.message}
+        } finally {
+            this.hideLoadingIndicator();
+        }
+    }
 
 
+    // async loadCommand(fileName) {
+    //     const commandName = fileName.replace('.js', '');
+    //     this.showLoadingIndicator()
+    //     try {
+    //         const module = await import(`/static/commands/${fileName}`);
+    //         if (module.default && typeof module.default.execute === 'function') {
+    //             this.addCommand(commandName, module.default.execute.bind(module.default), module.default.description);
+    //             // Bind additional methods if any
+    //             for (let [key, value] of Object.entries(module.default)) {
+    //                 if (key !== 'execute' && typeof value === 'function') {
+    //                     this.addCommand(`${commandName} ${key}`, value.bind(module.default), `Run ${commandName} ${key}`);
+    //                 }
+    //             }
+    //         } else {
+    //             throw new Error(`Invalid command module: ${fileName}. Missing execute function.`);
+    //         }
+    //     } catch (error) {
+    //         console.error(`Error loading command ${fileName}:`, error);
+    //     } finally {
+    //         this.hideLoadingIndicator();
+    //     }
+    // }
     async loadInitialCommands() {
         try {
             const response = await fetch('/list_commands/');
@@ -1128,25 +1210,55 @@ class Terminal {
             console.error('Error fetching or parsing command list:', error);
         }
     }
+    applyLoadingIndicatorStyles() {
+        // Basic styling for the loading indicator
+        this.loadingIndicator.style.position = 'fixed';
+        this.loadingIndicator.style.top = '0';
+        this.loadingIndicator.style.left = '0';
+        this.loadingIndicator.style.width = '100%';
+        this.loadingIndicator.style.height = '100%';
+        this.loadingIndicator.style.display = 'flex';
+        this.loadingIndicator.style.alignItems = 'center';
+        this.loadingIndicator.style.justifyContent = 'center';
+        this.loadingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        this.loadingIndicator.style.color = '#fff';
+        this.loadingIndicator.style.fontSize = '1.5em';
+        this.loadingIndicator.style.zIndex = '9999';
+        this.loadingIndicator.style.transition = 'opacity 0.3s ease';
 
-    async loadCommand(fileName) {
-        const commandName = fileName.replace('.js', '');
-        try {
-            const module = await import(`/static/commands/${fileName}`);
-            if (module.default && typeof module.default.execute === 'function') {
-                this.addCommand(commandName, module.default.execute.bind(module.default), module.default.description);
-                // Bind additional methods if any
-                for (let [key, value] of Object.entries(module.default)) {
-                    if (key !== 'execute' && typeof value === 'function') {
-                        this.addCommand(`${commandName} ${key}`, value.bind(module.default), `Run ${commandName} ${key}`);
-                    }
-                }
-            } else {
-                throw new Error(`Invalid command module: ${fileName}. Missing execute function.`);
+        // Spinner styling
+        const spinner = document.createElement('div');
+        spinner.classList.add('spinner');
+        this.loadingIndicator.appendChild(spinner);
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .spinner {
+                border: 16px solid #f3f3f3;
+                border-top: 16px solid #3498db;
+                border-radius: 50%;
+                width: 120px;
+                height: 120px;
+                animation: spin 2s linear infinite;
             }
-        } catch (error) {
-            console.error(`Error loading command ${fileName}:`, error);
-        }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    showLoadingIndicator() {
+        this.loadingIndicator.style.opacity = '1';
+    }
+
+    hideLoadingIndicator() {
+        this.loadingIndicator.style.opacity = '0';
+        setTimeout(() => {
+            this.loadingIndicator.style.display = 'none';
+        }, 300); // Match the duration of the opacity transition
     }
 
 
@@ -1160,17 +1272,36 @@ class Terminal {
     //     this.commands[name] = { execute, description, docString };
     // }
 
+    checkScreenSize() {
+        const width = Window.innerWidth;
+        const height = Window.innerHeight;
+        const tooSmallWidth = 600; // Example threshold for too small width
+        const tooLargeWidth = 1200; // Example threshold for too large width
+
+        if (width < tooSmallWidth) {
+            console.log('Screen is too small.');
+            document.body.classList.add('small-screen');
+            document.body.classList.remove('large-screen');
+        } else if (width > tooLargeWidth) {
+            console.log('Screen is too large.');
+            document.body.classList.add('large-screen');
+            document.body.classList.remove('small-screen');
+        } else {
+            this.displayOutput('Screen size is acceptable.');
+            document.body.classList.remove('small-screen', 'large-screen');
+        }
+    }
+
 }
-
-
-
 
 
 document.addEventListener('DOMContentLoaded', async () => {
     const terminal = new Terminal();
 
+
     // Example: Display initial prompt
-    terminal.prompt();
+    //terminal.prompt();
+    terminal.checkScreenSize();
 
     // Example: Handle form submission or command execution
     // (you'll need to implement this based on your application logic)
@@ -1180,9 +1311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     //terminal.newTabButton.addEventListener('click', terminal.addNewTab);
     //addCommandListener();
     //terminal.initializeFirstTab();
-    terminal.loadSettings();
-    terminal.initializeSettingsMenu();
-    await terminal.loadInitialCommands();
+
     const is_logged_in = localStorage.getItem('is_logged_in') === 'true';
     const username = localStorage.getItem('username');
     const ip = localStorage.getItem('userIp');
@@ -1199,6 +1328,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         terminal.animateTextLine("Login if you're already have an account");
         terminal.animateTextLineColor('Type help to see all commands');
     }
+
+    await terminal.loadInitialCommands();
 
 
 
@@ -1229,7 +1360,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initial theme application
     //applyTheme('theme1'); // Apply default theme on page load
-    applyFont('Verdana, sans-serif');
+    //applyFont('Verdana, sans-serif');
+
+    document.getElementById('new-tab').addEventListener('click', () => executeCommand('new-tab'));
+    document.getElementById('open').addEventListener('click', () => executeCommand('open'));
+    document.getElementById('save').addEventListener('click', () => executeCommand('save'));
+    document.getElementById('undo').addEventListener('click', () => executeCommand('undo'));
+    document.getElementById('redo').addEventListener('click', () => executeCommand('redo'));
+
 });
 
 const themes = {

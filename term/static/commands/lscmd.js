@@ -22,7 +22,7 @@ export default {
             const row = document.createElement('tr');
             rowData.forEach(command => {
                 const cell = document.createElement('td');
-                cell.style.border = '1px solid white';
+                cell.style.border = '1px dashed white';
                 cell.style.padding = '5px';
                 cell.innerText = command || '';
                 row.appendChild(cell);

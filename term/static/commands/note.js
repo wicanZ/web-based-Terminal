@@ -1,6 +1,10 @@
 export default {
-    notes: [],
-    
+    notes: JSON.parse(localStorage.getItem('notes')) || [],
+
+    saveNotesToLocalStorage() {
+        localStorage.setItem('notes', JSON.stringify(this.notes));
+    },
+
     execute: async function(args, terminal) {
         // Handle commands for adding, saving, and displaying notes
         const command = args[0];
@@ -11,6 +15,7 @@ export default {
                 const noteContent = args.slice(1).join(' ');
                 if (noteContent) {
                     this.notes.push(noteContent);
+                    this.saveNotesToLocalStorage();
                     terminal.displayOutput(`Note added: ${noteContent}`);
                 } else {
                     terminal.displayOutput('Please provide note content.');

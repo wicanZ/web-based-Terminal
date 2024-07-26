@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Term</title>
     {% load static %}
+    <link rel="icon" href="{% static 'image/hacker.png' %}" type="image/x-icon">
     <link rel="stylesheet" href="{% static 'index.css' %}">
 </head>
 
@@ -23,11 +24,11 @@
             <div>
                 Edit
                 <div class="dropdown-content">
-                    <a href="#">Undo</a>
-                    <a href="#">Redo</a>
-                    <a href="#">Cut</a>
-                    <a href="#">Copy</a>
-                    <a href="#">Paste</a>
+                    <a href="#" id="undo">Undo</a>
+                    <a href="#" id="redo">Redo</a>
+                    <a href="#" id="cut">Cut</a>
+                    <a href="#" id="copy">Copy</a>
+                    <a href="#" id="paste">Paste</a>
                 </div>
             </div>
             <div>
@@ -48,6 +49,8 @@
                     <button id="theme1">Theme 1</button>
                     <button id="theme2">Theme 2</button>
                     <button id="theme3">Theme 3</button>
+                    <button onclick="terminal.styleTerm.setBorderColor('#f00')">Set Border Color</button>
+                    <button onclick="terminal.styleTerm.setBackgroundColor('#111')">Set Background Color</button>
                     <a href="#">Reset Zoom</a>
                 </div>
             </div>
@@ -56,6 +59,7 @@
                 <div class="dropdown-content">
                     <a href="{% url 'doc' %}">Documentation</a>
                     <a href="#">About</a>
+                    <a href="{% url 'ctf' %}">CTF Game</a>
                 </div>
             </div>
         </div>
@@ -72,6 +76,7 @@
                 <input type="text" class="input blinking-cursor" id="python-input-field">
             </div>
             <div class="command">
+                <div id="loading-indicator" style="display:none;">Loading...</div>
                 <span class="promptc" id="promptc">trsh $</span>
                 <input type="text" class="input blinking-cursor" id="input" autofocus>
             </div>

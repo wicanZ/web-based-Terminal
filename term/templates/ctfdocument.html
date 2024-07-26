@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Challenge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .documentation,
+        .challenge-list,
+        .challenge-details {
+            margin-top: 20px;
+        }
+
+        .documentation ol,
+        .documentation ul {
+            margin-left: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        li:hover {
+            background-color: #d0d0d0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #result {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Capture The Flag (CTF) Challenge</h1>
+        <div class="documentation">
+            <h2>How to Play</h2>
+            <p>Welcome to the CTF Challenge! Follow the steps below to participate:</p>
+            <ol>
+                <li>Select a challenge from the list of available challenges.</li>
+                <li>Read the challenge description carefully to understand what is required.</li>
+                <li>Enter your input or code in the provided textarea.</li>
+                <li>Click the "Submit" button to submit your input for validation.</li>
+                <li>If your input is correct, you will receive a flag. Otherwise, try again.</li>
+            </ol>
+            <p><strong>Examples:</strong></p>
+            <ul>
+                <li><strong>Programming Challenge:</strong> Write a function named <code>find_flag</code> that returns
+                    the string <code>'correct_flag'</code>. Your code should look like this:
+                    <pre><code>
+def find_flag():
+    return 'correct_flag'
+                    </code></pre>
+                </li>
+                <li><strong>File Search Challenge:</strong> Find the hidden file in the <code>/tmp</code> directory. Use
+                    the command: <code>ls /tmp</code>. Your input should be:
+                    <pre><code>
+/tmp/hidden_flag_file.txt
+                    </code></pre>
+                </li>
+            </ul>
+        </div>
+        <div class="challenge-list">
+            <h2>Available Challenges</h2>
+            <ul id="challenge-list">
+                <!-- Challenges will be listed here -->
+            </ul>
+        </div>
+        <div class="challenge-details" id="challenge-details">
+            <h2>Challenge Details</h2>
+            <p id="challenge-description">Select a challenge to see details.</p>
+            <textarea id="user-input" placeholder="Enter your input/code here..."></textarea>
+            <button id="submit-button">Submit</button>
+            <p id="result"></p>
+        </div>
+    </div>
+    <script>
+        const challenges = {
+            1: {
+                name: "Programming Challenge",
+                description: "Write a function named 'find_flag' that returns the string 'correct_flag'. Submit your code to get the flag.",
+                url: "/programming_challenge/"
+            },
+            2: {
+                name: "File Search Challenge",
+                description: "Find the hidden file in the /tmp directory. Use the command: ls /tmp",
+                url: "/validate_file_search/"
+            }
+            // Add more challenges as needed
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const challengeList = document.getElementById('challenge-list');
+            const challengeDetails = document.getElementById('challenge-details');
+            const challengeDescription = document.getElementById('challenge-description');
+            const userInput = document.getElementById('user-input');
+            const submitButton = document.getElementById('submit-button');
+            const result = document.getElementById('result');
+
+            // Display list of challenges
+            for (const [key, challenge] of Object.entries(challenges)) {
+                const li = document.createElement('li');
+                li.textContent = `${key}: ${challenge.name}`;
+                li.dataset.challengeId = key;
+                challengeList.appendChild(li);
+            }
+
+            // Handle challenge selection
+            challengeList.addEventListener('click', (e) => {
+                if (e.target && e.target.nodeName === 'LI') {
+                    const challengeId = e.target.dataset.challengeId;
+                    const challenge = challenges[challengeId];
+                    challengeDescription.textContent = challenge.description;
+                    userInput.value = '';
+                    result.textContent = '';
+                    submitButton.dataset.challengeId = challengeId;
+                }
+            });
+
+            // Handle challenge submission
+            submitButton.addEventListener('click', async () => {
+                const challengeId = submitButton.dataset.challengeId;
+                if (!challengeId) {
+                    result.textContent = 'Please select a challenge first.';
+                    result.style.color = 'red';
+                    return;
+                }
+
+                const userInputValue = userInput.value.trim();
+                if (!userInputValue) {
+                    result.textContent = 'Please enter your input/code.';
+                    result.style.color = 'red';
+                    return;
+                }
+
+                const challenge = challenges[challengeId];
+                try {
+                    const response = await fetch(challenge.url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ code: userInputValue, path: userInputValue, sequence: userInputValue, pin: userInputValue, injection: userInputValue })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        result.textContent = `Congratulations! Here is your flag: ${data.flag}`;
+                        result.style.color = 'green';
+                    } else {
+                        result.textContent = `Error: ${data.message}`;
+                        result.style.color = 'red';
+                    }
+                } catch (error) {
+                    result.textContent = `Error: ${error.message}`;
+                    result.style.color = 'red';
+                }
+            });
+
+            // Function to get CSRF token
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        });
+
+    </script>
+</body>
+
+</html>

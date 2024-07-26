@@ -6,16 +6,48 @@ import os , subprocess
 import json
 import shutil
 import json
-import datetime
 from django.core.mail import send_mail
 # Create your views here.
 from webterm import settings
+import datetime
+from django.utils import timezone
+
+from .models import QuizResult
 
 
+QUIZ_START_TIME = timezone.now() + timezone.timedelta(minutes=1)
+RESULT_AVAILABLE_TIME = QUIZ_START_TIME + timezone.timedelta(minutes=10)
+
+def get_quiz_start_time(request):
+    return JsonResponse({'start_time': QUIZ_START_TIME.isoformat()})
+
+def save_quiz_result(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data.get('username')
+        score = data.get('score')
+        try:
+            user = User.objects.get(username=username)
+            quiz_result = QuizResult.objects.create(user=user, score=score)
+            return JsonResponse({'success': True})
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'User not found'})
+    return JsonResponse({'success': False})
+
+def get_quiz_results(request):
+    if timezone.now() < RESULT_AVAILABLE_TIME:
+        return JsonResponse({'results': [], 'result_available_time': RESULT_AVAILABLE_TIME.isoformat()})
+
+    results = QuizResult.objects.all().order_by('-score')
+    results_data = [{'username': result.user.username, 'score': result.score} for result in results]
+    return JsonResponse({
+        'results': results_data,
+        'result_available_time': RESULT_AVAILABLE_TIME.isoformat()
+    })
 
 def Homepage(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '')
-    print(user_agent)
+    #print(user_agent)
     # if user_agent.startswith('Mozilla/5.0') :
     #     response = 'hello world'
     #     return JsonResponse({'response': response})
@@ -24,6 +56,11 @@ def Homepage(request):
 def document( request ) :
     template = 'document.html'
     return render(request  ,template, context={})
+
+def ctf_home(request) :
+    template = 'ctfdocument.html'
+    return render(request  ,template, context={})
+
 # # In-memory file system structure
 # file_system = {
 #     '/': {
@@ -100,49 +137,10 @@ def parse_output_as_json(output):
             data.append(item)
     return data
 
-def is_path_within_base_directory(path):
-    # Get the absolute path
-    abs_path = os.path.abspath(path)
-    # Check if the path starts with the base directory
-    return abs_path.startswith(os.path.abspath(ROOT_PATH))
-
-def normalize_path(path):
-    return os.path.normpath(os.path.join(ROOT_PATH, path))
-
-def list_directory(path):
-    try:
-        normalized_path = normalize_path(path)
-        if not is_path_within_base_directory(normalized_path):
-            return HttpResponseForbidden("Access to this directory is forbidden.")
-        
-        files = os.listdir(normalized_path)
-        return JsonResponse({'files': files})
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
-
-def change_directory(request, path):
-    normalized_path = normalize_path(path)
-    if not is_path_within_base_directory(normalized_path):
-        return HttpResponseForbidden("Access to this directory is forbidden.")
-    
-    try:
-        os.chdir(normalized_path)
-        return JsonResponse({'current_directory': normalized_path})
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
 
 def generate_man_page_html(command):
     man_pages = {
-        'pv': {
-            'name': 'pv',
-            'author': 'Noel Friedrich',
-            'description': 'Print a message with a typing animation',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'message', 'Optional': 'no', 'Description': '', 'Type': 'string', 'Default': '/'}
-            ]
-        },
+
         'ls': {
             'name': 'ls',
             'author': 'GNU Project',
@@ -210,27 +208,7 @@ def generate_man_page_html(command):
                 {'Argument': 'command', 'Optional': 'no', 'Description': 'Command to time', 'Type': 'string', 'Default': '/'}
             ]
         },
-        'calc': {
-            'name': 'calc',
-            'author': 'Custom Command',
-            'description': 'Perform basic arithmetic operations',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'expression', 'Optional': 'no', 'Description': 'Mathematical expression to evaluate', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'me': {
-            'name' : 'Trustful Shylla',
-            'author' : 'ok',
-            'description': 'sss',
-            'email' : 'email',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments' : [
-                {'Argument':'coding' ,'Optional': 'no', 'Description': 'Mathematical expression to evaluate', 'Type': 'string', 'Default': '/'} ,
-            ]
-        },
+
         'rm': {
             'name': 'rm',
             'author': 'GNU Project',
@@ -263,189 +241,7 @@ def generate_man_page_html(command):
                 {'Argument': 'destination', 'Optional': 'no', 'Description': 'Destination file or directory', 'Type': 'string', 'Default': '/'}
             ]
         },
-        'grep': {
-            'name': 'grep',
-            'author': 'GNU Project',
-            'description': 'Print lines that match patterns',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'pattern', 'Optional': 'no', 'Description': 'Pattern to search for', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'file', 'Optional': 'yes', 'Description': 'File to search in', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'chmod': {
-            'name': 'chmod',
-            'author': 'GNU Project',
-            'description': 'Change file modes or Access Control Lists',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'mode', 'Optional': 'no', 'Description': 'File mode to set', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to change mode of', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'chown': {
-            'name': 'chown',
-            'author': 'GNU Project',
-            'description': 'Change file owner and group',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'owner', 'Optional': 'no', 'Description': 'New owner', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to change owner of', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'ps': {
-            'name': 'ps',
-            'author': 'GNU Project',
-            'description': 'Report a snapshot of current processes',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': []
-        },
-        'top': {
-            'name': 'top',
-            'author': 'Various',
-            'description': 'Display Linux tasks',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': []
-        },
-        'nano': {
-            'name': 'nano',
-            'author': 'GNU Project',
-            'description': 'Simple text editor',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to edit', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'vim': {
-            'name': 'vim',
-            'author': 'Bram Moolenaar',
-            'description': 'Vi IMproved, a programmers text editor',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to edit', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'echo': {
-            'name': 'echo',
-            'author': 'GNU Project',
-            'description': 'Display a line of text',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'text', 'Optional': 'no', 'Description': 'Text to display', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'find': {
-            'name': 'find',
-            'author': 'GNU Project',
-            'description': 'Search for files in a directory hierarchy',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'path', 'Optional': 'no', 'Description': 'Path to search', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'expression', 'Optional': 'no', 'Description': 'Expression to search for', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'tar': {
-            'name': 'tar',
-            'author': 'GNU Project',
-            'description': 'Store, list, or extract files in an archive',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'Tar file to operate on', 'Type': 'string', 'Default': '/'},
-                {'Argument': '--create', 'Optional': 'yes', 'Description': 'Create a new archive', 'Type': 'flag', 'Default': 'False'},
-                {'Argument': '--extract', 'Optional': 'yes', 'Description': 'Extract files from an archive', 'Type': 'flag', 'Default': 'False'}
-            ]
-        },
-        'gzip': {
-            'name': 'gzip',
-            'author': 'GNU Project',
-            'description': 'Compress files',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to compress', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'gunzip': {
-            'name': 'gunzip',
-            'author': 'GNU Project',
-            'description': 'Decompress files',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to decompress', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'zip': {
-            'name': 'zip',
-            'author': 'Info-ZIP',
-            'description': 'Package and compress files',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to compress', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'unzip': {
-            'name': 'unzip',
-            'author': 'Info-ZIP',
-            'description': 'Extract compressed files',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to extract', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'wget': {
-            'name': 'wget',
-            'author': 'GNU Project',
-            'description': 'Retrieve files from the web',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'url', 'Optional': 'no', 'Description': 'URL to retrieve', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'curl': {
-            'name': 'curl',
-            'author': 'Daniel Stenberg',
-            'description': 'Transfer data from or to a server',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'url', 'Optional': 'no', 'Description': 'URL to transfer data from/to', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'ssh': {
-            'name': 'ssh',
-            'author': 'OpenSSH',
-            'description': 'OpenSSH remote login client',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'host', 'Optional': 'no', 'Description': 'Host to connect to', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'scp': {
-            'name': 'scp',
-            'author': 'OpenSSH',
-            'description': 'Secure copy (remote file copy program)',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'source', 'Optional': 'no', 'Description': 'Source file to copy', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'destination', 'Optional': 'no', 'Description': 'Destination to copy to', 'Type': 'string', 'Default': '/'}
-            ]
-        }
+ 
         # Add more commands as needed
     }
     # if command in man_pages:
@@ -515,6 +311,39 @@ def generate_man_page_html(command):
     """
     return html
 
+# ROOT_PATH = '/home/tsh/webstar' #'/tmp/terminal_root'
+def is_path_within_base_directory(path):
+    # Get the absolute path
+    abs_path = os.path.abspath(path)
+    # Check if the path starts with the base directory
+    return abs_path.startswith(os.path.abspath(ROOT_PATH))
+
+def normalize_path(path):
+    return os.path.normpath(os.path.join(ROOT_PATH, path))
+
+def list_directory(path):
+    try:
+        normalized_path = normalize_path(path)
+        if not is_path_within_base_directory(normalized_path):
+            return HttpResponseForbidden("Access to this directory is forbidden.")
+        
+        files = os.listdir(normalized_path)
+        return JsonResponse({'files': files})
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+def change_directory(request, path):
+    normalized_path = normalize_path(path)
+    if not is_path_within_base_directory(normalized_path):
+        return HttpResponseForbidden("Access to this directory is forbidden.")
+    
+    try:
+        os.chdir(normalized_path)
+        return JsonResponse({'current_directory': normalized_path})
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
+
 def format_size(size):
     """
     Convert size in bytes to human-readable format (KB, MB, GB).
@@ -528,6 +357,9 @@ def format_size(size):
     else:
         return f"{size / (1024 * 1024 * 1024):.1f} GB"
     
+
+
+
 @csrf_exempt
 def execute_command(request):
     data = json.loads(request.body.decode('utf-8'))
@@ -551,7 +383,7 @@ def execute_command(request):
     log_command(request ,command, current_dir)
 
 
-    if cmd.startswith('ls'):
+    if command.startswith('ls'):
         options = command.split()[1:]
         directory = current_dir_path
         formatted_files = []
@@ -591,26 +423,40 @@ def execute_command(request):
         response = current_dir
     elif cmd == 'cat':
         if args:
-            normalized_path = normalize_path(os.path.join(current_dir_path, args[0]))
-            if not is_path_within_base_directory(normalized_path):
-                response = f'No such directory: {args[0]}' if not os.path.isfile(normalized_path) else 'Access to this directory is forbidden.'
-            else :
-                with open(normalized_path, 'r') as file:
-                    response = file.read()
-            # file_path = os.path.join(current_dir_path, args[0])
-            # normalized_path = normalize_path(os.path.join(current_dir_path, args[0]))
-            # if not is_path_within_base_directory(normalized_path):
-            #     response = 'not allow '#f'No such directory: {args[0]}' if not os.path.isdir(new_path) else 'Access to this directory is forbidden.'
-                
-            # elif os.path.isfile(file_path):
-            #     with open(file_path, 'r') as file:
-            #         response = file.read()
-            # else:
-            #     response = f'No such file: {args[0]}'
-
-            #response = cat_file(os.path.join(current_dir, args[0]))
+            file_path = os.path.join(current_dir_path, args[0])
+            # Normalize and check if the file path is within ROOT_PATH
+            if is_path_within_base_directory(file_path) and os.path.isfile(file_path):
+                try:
+                    with open(file_path, 'r') as file:
+                        response = file.read()
+                except Exception as e:
+                    response = str(e)
+            else:
+                response = f'No such file or access to file is forbidden: {args[0]}'
         else:
-            response = 'Usage: cat <file_name>'
+            response = 'Usage: cat <filename>'
+    # elif cmd == 'cat':
+    #     if args:
+    #         normalized_path = normalize_path(os.path.join(current_dir_path, args[0]))
+    #         if not is_path_within_base_directory(normalized_path):
+    #             response = f'No such directory: {args[0]}' if not os.path.isfile(normalized_path) else 'Access to this directory is forbidden.'
+    #         else :
+    #             with open(normalized_path, 'r') as file:
+    #                 response = file.read()
+    #         # file_path = os.path.join(current_dir_path, args[0])
+    #         # normalized_path = normalize_path(os.path.join(current_dir_path, args[0]))
+    #         # if not is_path_within_base_directory(normalized_path):
+    #         #     response = 'not allow '#f'No such directory: {args[0]}' if not os.path.isdir(new_path) else 'Access to this directory is forbidden.'
+                
+    #         # elif os.path.isfile(file_path):
+    #         #     with open(file_path, 'r') as file:
+    #         #         response = file.read()
+    #         # else:
+    #         #     response = f'No such file: {args[0]}'
+
+    #         #response = cat_file(os.path.join(current_dir, args[0]))
+    #     else:
+    #         response = 'Usage: cat <file_name>'
     elif cmd == 'rm':
         if args:
             target_path = os.path.join(current_dir_path, args[0])
@@ -653,11 +499,6 @@ def execute_command(request):
                 response = str(e)
         else:
             response = 'Usage: echo <content> > <file>'
-    elif cmd == 'pv':
-        if args:
-            response = ''# .join(args)
-        else:
-            response = 'ParseError: argument "message" (string) is missing'
     elif cmd == 'man':
         man_page_html = generate_man_page_html(args[0])
         response = man_page_html
@@ -696,23 +537,6 @@ def execute_command(request):
                 response = log_file.read()
         except Exception as e:
             response = str(e)
-    elif cmd == 'help':
-        response = (
-            "Available commands:\n"
-            "ls - list directory contents\n"
-            "cd <directory> - change the current directory\n"
-            "pwd - print the current directory\n"
-            "cat <file> - display the contents of a file\n"
-            "rm <file/directory> - remove a file or directory\n"
-            "touch <file> - create an empty file\n"
-            "echo <content> > <file> - write content to a file\n"
-            "mkdir <directory> - create a new directory\n"
-            "upload <file> - upload a file\n"
-            "history - show command history\n"
-            "help - show this help message"
-        )
-    elif cmd == 'about':
-            response = "This is a terminal emulator web app. Developed by [Your Name]."
     elif cmd == 'contact':
         response = "Email: your.email@example.com\nPhone: +123456789\nLocation: Your Location"
     elif cmd.startswith('email'):
@@ -733,17 +557,6 @@ def execute_command(request):
                 response = "Email sent successfully."
         except Exception as e:
             response = f"Error sending email: {str(e)}"
-    elif cmd.startswith('calc'):
-        expression = cmd[5:]
-        try:
-            result = eval(expression)
-            response = f"Result: {result}"
-        except Exception as e:
-            response = f"Error: Invalid expression"
-    elif cmd == 'date':
-        response = datetime.datetime.now().strftime('%Y-%m-%d')
-    elif cmd == 'time':
-        response = datetime.datetime.now().strftime('%H:%M:%S')
     elif cmd == 'cp':
         if len(args) == 2:
             src = os.path.join(current_dir_path, args[0])
@@ -805,10 +618,6 @@ def execute_command(request):
     elif cmd == 'top':
         result = subprocess.run(['top', '-b', '-n', '1'], capture_output=True, text=True)
         response = result.stdout
-    elif cmd == 'nano':
-        response = 'Nano is a text editor and cannot be run in this environment'
-    elif cmd == 'vim':
-        response = 'Vim is a text editor and cannot be run in this environment'
     elif cmd == 'echo':
         response = ' '.join(args)
     elif cmd == 'find':
@@ -881,94 +690,16 @@ def execute_command(request):
             response = f'{url} downloaded'
         else:
             response = 'Usage: wget <url>'
-    elif cmd == 'curl':
-        if args:
-            url = args[0]
-            result = subprocess.run(['curl', url], capture_output=True, text=True)
-            response = result.stdout
-        else:
-            response = 'Usage: curl <url>'
-    elif cmd == 'ssh':
-        response = 'SSH cannot be run in this environment'
-    elif cmd == 'scp':
-        response = 'SCP cannot be run in this environment'
-    elif cmd == 'lscpus':
-        print('start')
-        response = """s
-        +------------------------+--------------------------------------+
-        | logical cpu cores      | 4                                    |  
-        | platform (guess)       | Linux x86_64                         |  
-        | cpu clockspeed (guess) | 1.1 ghz                              |  
-        | gpu vendor             | Intel                                |  
-        | gpu renderer           | Intel(R) HD Graphics 400, or similar |  
-        +----+----------------------+--------------------------------------+
-        """
-    elif cmd == 'shutdown':
-        response = (
-            "Shutting down..........\n"
-            "Initiating Shutdown Process......\n"
-        )
-        for i in range(10, 0, -1):
-            response += f"{i} Seconds left\n"
-        response += (
-            "...?\n"
-            "Why didn't anything happen?\n"
-            "I guess this is just a website.\n"
-            "Let's just not shutdown. Have a good day!\n"
-        )
-    # elif cmd == 'json':
-    #         # Example: Format output as JSON
-    #         result = subprocess.run(['ls', '-l'], stdout=subprocess.PIPE)
-    #         output = result.stdout.decode('utf-8')
-    #         if output:
-    #             data = parse_output_as_json(output)
-    #             response = json.dumps(data, indent=4)
-    #         else:
-    #             response = '{"error": "No output to format as JSON"}'
-    elif command.startswith('json'):
-        subcommand = args[0] if args else None
-        if subcommand == 'ls':
-            response_data = {
-                'files': ['file1.txt', 'file2.txt', 'file3.txt'],
-                'directories': ['dir1', 'dir2'],
-            }
-        elif subcommand == 'help':
-            response_data = {
-                'message': 'JSON command help:',
-                'commands': ['ls - List files and directories', 'help - Show this help message', 'ip - Get IP address']
-            }
-        elif subcommand == 'ip':
-            # Example of getting client IP address
-            client_ip = request.META.get('REMOTE_ADDR', None)
-            response_data = {
-                'ip': client_ip
-            }
-        else:
-            return JsonResponse({'response': f'Unknown subcommand: {subcommand}'}, status=400)
-    elif cmd =='kill':
-        try:
-            process_name_or_id = ' '.join(args)
-            print(process_name_or_id)
-            # Execute the kill command with subprocess
-            result = subprocess.run(['kill', process_name_or_id], capture_output=True, text=True)
-            if result.returncode == 0:
-                return JsonResponse({'response': f'Successfully killed process {process_name_or_id}'})
-            else:
-                return JsonResponse({'response': f'Failed to kill process {process_name_or_id}', 'error': result.stderr}, status=500)
-        except Exception as e:
-            return JsonResponse({'response': f'Error executing kill command: {str(e)}'}, status=500)
-    elif cmd =='whoami':
-        response = 'quest'
+
     else:
         response = f'Command not found: {cmd}'
 
-    return JsonResponse({'response': response, 'current_dir': new_current_dir})
+    return JsonResponse({'response': response, 'current_dir': new_current_dir , 'success': True })
 
 @csrf_exempt
 def upload_file(request):
     if request.method == 'POST' and 'file' in request.FILES:
         file = request.FILES['file']
-        print(file)
         current_dir = request.POST.get('current_dir', '/')
         current_dir_path = os.path.join(ROOT_PATH, current_dir.lstrip('/'))
         os.makedirs(current_dir_path, exist_ok=True)
@@ -1029,8 +760,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest
-
+from django.http import JsonResponse, HttpResponseBadRequest # type : ignore
+from django.views.decorators.http import require_GET # type: ignore
 
 
 
@@ -1060,6 +791,8 @@ def upload_command(request):
             return HttpResponseBadRequest(f"Failed to write file: {str(e)}")
 
     return HttpResponseBadRequest("Invalid request method")
+
+
 
 @csrf_exempt
 def save_file(request):
@@ -1135,27 +868,259 @@ def register_view(request):
         return JsonResponse({'success': True, 'user': username})
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
+
+def get_filecommand(request, file_name):
+    print(f"Requested file: {file_name}")  # Debugging output
+
+    # Validate file_name to prevent directory traversal attacks
+    if '../' in file_name or file_name.startswith('/'):
+        return JsonResponse({'error': 'Invalid file name'}, status=400)
+
+    file_path = os.path.join('static', 'commands', file_name)
+    print(f"File path: {file_path}")  # Debugging output
+
+    if not os.path.isfile(file_path):
+        return JsonResponse({'error': 'File not found'}, status=404)
+
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+        return JsonResponse({'content': content})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 @csrf_exempt
 def save_command(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        file_name = data.get('fileName')
-        content = data.get('content')
+        try:
+            data = json.loads(request.body)
+            file_name = data.get('fileName')
+            content = data.get('content')
 
-        if file_name and content:
-            command_path = os.path.join('static', 'commands', file_name)
-            try:
-                with open(command_path, 'w') as file:
-                    file.write(content)
-                return JsonResponse({'status': 'success'}, status=200)
-            except IOError as e:
-                return JsonResponse({'error': str(e)}, status=500)
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    return JsonResponse({'error': 'Invalid method'}, status=405)
+            if not file_name or not content:
+                return JsonResponse({'error': 'fileName and content are required'}, status=400)
 
+            # Validate file_name to prevent directory traversal attacks
+            if '../' in file_name or file_name.startswith('/'):
+                return JsonResponse({'error': 'Invalid file name'}, status=400)
+
+            # Ensure the directory exists
+            commands_dir = os.path.join('static', 'commands')
+            os.makedirs(commands_dir, exist_ok=True)
+            command_path = os.path.join(commands_dir, file_name)
+
+            with open(command_path, 'w') as file:
+                file.write(content)
+            return JsonResponse({'message': 'File saved successfully'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def get_file(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            file_name = data.get('fileName', '').strip()
+            
+            if not file_name:
+                return JsonResponse({'error': 'File name is required'}, status=400)
+            if '../' in file_name or file_name.startswith('/'):
+                return JsonResponse({'error': 'File within dir only '}, status=400)
+            
+            file_path = os.path.join(ROOT_PATH, file_name)
+            
+            if not os.path.isfile(file_path):
+                return JsonResponse({'error': 'File not found'}, status=404)
+            
+            with open(file_path, 'r') as file:
+                content = file.read()
+                
+            return JsonResponse({'content': content})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return HttpResponseBadRequest('Invalid request method')
+
+@csrf_exempt
+def save_file_vim(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            file_name = data.get('fileName', '').strip()
+            content = data.get('content', '')
+
+            if not file_name:
+                return JsonResponse({'error': 'File name is required'}, status=400)
+            
+            if '../' in file_name or file_name.startswith('/'):
+                return JsonResponse({'error': 'Invalid file name'}, status=400)
+            
+            file_path = os.path.join(ROOT_PATH , file_name)
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            with open(file_path, 'w') as file:
+                file.write(content)
+                
+            return JsonResponse({'message': 'File saved successfully'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return HttpResponseBadRequest('Invalid request method')
 
 
 def list_commands(request):
     commands_dir = os.path.join(settings.BASE_DIR, 'term/static', 'commands')
     command_files = [f for f in os.listdir(commands_dir) if f.endswith('.js')]
     return JsonResponse(command_files, safe=False)
+
+# ctf flag
+
+@csrf_exempt
+def programming_challenge(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        try:
+            user_code = data.get('code')
+            exec_globals = {}
+            exec_locals = {}
+            exec(user_code, exec_globals, exec_locals)
+            if 'find_flag' in exec_locals and exec_locals['find_flag']() == 'correct_flag':
+                return JsonResponse({'success': True, 'flag': 'FLAG{programming_ctf_success}'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Incorrect result. Try again!'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+    return JsonResponse({'message': 'Send a POST request with your code to solve the challenge.'})
+
+@csrf_exempt
+def validate_file_search(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        hidden_file_path = '/tmp/hidden_flag_file.txt'
+        if data.get('path') == hidden_file_path:
+            return JsonResponse({'success': True, 'flag': 'FLAG{file_search_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect file path. Try again!'})
+
+@csrf_exempt
+def validate_xss(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # Example XSS payload check
+        if '<script>alert("FLAG{example_xss_flag}");</script>' in data.get('payload', ''):
+            return JsonResponse({'success': True, 'flag': 'FLAG{xss_exploit_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect XSS payload. Try again!'})
+        
+@csrf_exempt
+def validate_physical_security(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        try:
+            sequence = data.get('sequence')
+            if sequence.isdigit() and is_prime(int(sequence)):
+                return JsonResponse({'success': True, 'flag': 'FLAG{physical_security_success}'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Incorrect sequence. Try again!'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+    return JsonResponse({'message': 'Send a POST request with your sequence to solve the challenge.'})
+
+def is_prime(n):
+    if n <= 1:
+        return False
+    if n <= 3:
+        return True
+    if n % 2 == 0 or n % 3 == 0:
+        return False
+    i = 5
+    while i * i <= n:
+        if n % i == 0 or n % (i + 2) == 0:
+            return False
+        i += 6
+    return True
+
+
+@csrf_exempt
+def validate_brute_force(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        correct_pin = '1234'  # Example PIN
+        if data.get('pin') == correct_pin:
+            return JsonResponse({'success': True, 'flag': 'FLAG{brute_force_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect PIN. Try again!'})
+
+@csrf_exempt
+def validate_sql_injection(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # Example check for SQL injection payload
+        if '1\' OR \'1\'=\'1' in data.get('injection', ''):
+            return JsonResponse({'success': True, 'flag': 'FLAG{sql_injection_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect SQL injection payload. Try again!'})
+
+
+@csrf_exempt
+def validate_hash_crack(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('input') == 'password':
+            return JsonResponse({'success': True, 'flag': 'FLAG{hash_crack_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect input. Try again!'})
+
+@csrf_exempt
+def validate_reverse_engineering(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('input') == 'FLAG{reverse_engineering_success}':
+            return JsonResponse({'success': True, 'flag': 'FLAG{reverse_engineering_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect input. Try again!'})
+
+@csrf_exempt
+def validate_steganography(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('input') == 'hidden_message':
+            return JsonResponse({'success': True, 'flag': 'FLAG{steganography_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect input. Try again!'})
+
+@csrf_exempt
+def validate_forensics(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('input') == 'FLAG{forensics_success}':
+            return JsonResponse({'success': True, 'flag': 'FLAG{forensics_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect input. Try again!'})
+
+@csrf_exempt
+def validate_web_exploitation(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('input') == 'FLAG{web_exploitation_success}':
+            return JsonResponse({'success': True, 'flag': 'FLAG{web_exploitation_success}'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect input. Try again!'})
+
+
+@csrf_exempt
+def submit_flag(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_flag = data.get('user_flag')
+        expected_flag = data.get('expected_flag')
+        if user_flag == expected_flag:
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'message': 'Incorrect flag. Try again!'})
+
+    return JsonResponse({'message': 'Send a POST request with your flag to validate it.'})

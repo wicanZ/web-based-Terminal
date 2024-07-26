@@ -1,5 +1,6 @@
 export default {
     execute: function(args, terminal) {
+        // Function to generate a random color
         function getRandomColor() {
             const letters = '0123456789ABCDEF';
             let color = '#';
@@ -9,12 +10,14 @@ export default {
             return color;
         }
 
+        // Function to apply color to terminal elements
         function setColor(element, color) {
             element.style.backgroundColor = color.background;
             element.style.color = color.foreground;
         }
 
-        const backgroundColor = getRandomColor();
+        // Generate random colors for different elements
+        const backgroundColor = '#000000';
         let foregroundColor = getRandomColor();
 
         // Ensure foreground color is different from background color
@@ -23,28 +26,48 @@ export default {
         }
 
         const promptColor = getRandomColor();
-        const promptText = 'root@trsh';
+        const promptText = 'root@trsh'; // Example prompt text
 
+        // Define the style object
         const style = {
-            background: backgroundColor,
-            foreground: foregroundColor,
-            prompt: promptColor,
+            borderColor: getRandomColor(),
+            boxShadow: '0 0 10px rgba(0,0,0,0.5)', // Example box shadow
+            backgroundColor: backgroundColor,
+            textColor: foregroundColor,
+            titleBarColor: getRandomColor(),
+            borderRadius: '10px', // Example border radius
+            fontSize: '16px',    // Example font size
+            promptColor: promptColor,
+            inputColor: getRandomColor(),
             promptText: promptText
         };
 
-        // Apply styles
-        terminal.element.style.backgroundColor = style.background;
-        terminal.element.style.color = style.foreground;
-        terminal.promptElement.style.color = style.prompt;
-        terminal.promptText = style.promptText;
+        // Apply styles using TerminalStyle class
+        const terminalStyle = new TerminalStyle(terminal.element);
+        terminalStyle.setBorderColor(style.borderColor);
+        terminalStyle.setBoxShadow(style.boxShadow);
+        terminalStyle.setBackgroundColor(style.backgroundColor);
+        terminalStyle.setTextColor(style.textColor);
+        terminalStyle.setTitleBarColor(style.titleBarColor);
+        terminalStyle.setBorderRadius(style.borderRadius);
+        terminalStyle.setFontSize(style.fontSize);
+        terminalStyle.setPromptColor(style.promptColor);
+        terminalStyle.setInputColor(style.inputColor);
 
         // Save styles to localStorage
         localStorage.setItem('terminalStyle', JSON.stringify(style));
 
-        terminal.printLine(`Background color set to: ${style.background}`);
-        terminal.printLine(`Foreground color set to: ${style.foreground}`);
-        terminal.printLine(`Prompt color set to: ${style.prompt}`);
-        terminal.printLine(`Prompt text set to: ${style.promptText}`);
+        // Output messages to the terminal
+        terminal.displayOutput(`Terminal styled with:
+            Border color: ${style.borderColor}
+            Box shadow: ${style.boxShadow}
+            Background color: ${style.backgroundColor}
+            Text color: ${style.textColor}
+            Title bar color: ${style.titleBarColor}
+            Border radius: ${style.borderRadius}
+            Font size: ${style.fontSize}
+            Prompt color: ${style.promptColor}
+            Input color: ${style.inputColor}`);
     },
-    description: 'Apply a random style to the terminal'
+    description: 'Apply random styles to the terminal'
 };

@@ -1,16 +1,17 @@
 export default {
     execute: async function(args, terminal) {
-        const response = await fetch('/execute_command/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': terminal.getCookie('csrftoken')
-            },
-            body: JSON.stringify({ command: 'whoami', args: args })
-        });
+        // Assume you have a method to check if the user is logged in
+        const isLoggedIn = terminal.checkLoginStatus(); // Replace with your actual method to check login status
 
-        const data = await response.json();
-        terminal.displayOutput(data.response);
+        if (isLoggedIn) {
+            // Display the current user (e.g., from a stored user profile or session)
+            const currentUser = terminal.getCurrentUser(); // Replace with your actual method to get the current user
+            terminal.displayOutput(`Current user: ${currentUser}`);
+        } else {
+            // Display quest mode message
+            terminal.displayOutput('You are currently in guest mode. Please log in to see the current user.');
+        }
     },
     description: 'Display current user'
 };
+

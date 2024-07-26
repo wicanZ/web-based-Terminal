@@ -401,7 +401,13 @@ li.selected {
     font-weight: bold;
 }
 
-
+.copy-button {
+    display: inline-block;
+    margin-left: 10px;
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
 
 
 #ascii-art {

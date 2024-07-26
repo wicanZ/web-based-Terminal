@@ -1,9 +1,10 @@
-// ./commands/cd.js
 export default {
     execute: async function(args, terminal) {
         const newPath = args[1] || '/'; // Default to root if no path provided
-        terminal.printLine(args) ;
+
         const commandWithArgs = `cd ${args.join(' ')}`;
+        const currentDir = localStorage.getItem('current_dir') || '/';
+        
 
         const response = await fetch('/execute_command/', {
             method: 'POST',
@@ -11,17 +12,16 @@ export default {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': terminal.getCookie('csrftoken')
             },
-            body: JSON.stringify({ command: commandWithArgs, args: commandWithArgs })
+            body: JSON.stringify({ command: commandWithArgs, current_dir: currentDir })
         });
 
         const data = await response.json();
-        terminal.displayOutput(`Changed directory to ${data.response}`);
-        // if (data.success) {
-        //     terminal.currentDir = newPath;
-        //     terminal.displayOutput(`Changed directory to ${newPath}`);
-        // } else {
-        //     terminal.displayOutput(`Error: ${data.error}`);
-        // }
+        terminal.displayOutput(data.current_dir) ;
+        if (data.response.startsWith('Changed directory to:')) {
+            localStorage.setItem('current_dir', data.current_dir);
+        }
+        terminal.displayOutput(data.response);
     },
     description: 'Change directory'
 };
+

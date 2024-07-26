@@ -1,0 +1,183 @@
+       'grep': {
+            'name': 'grep',
+            'author': 'GNU Project',
+            'description': 'Print lines that match patterns',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'pattern', 'Optional': 'no', 'Description': 'Pattern to search for', 'Type': 'string', 'Default': '/'},
+                {'Argument': 'file', 'Optional': 'yes', 'Description': 'File to search in', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'chmod': {
+            'name': 'chmod',
+            'author': 'GNU Project',
+            'description': 'Change file modes or Access Control Lists',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'mode', 'Optional': 'no', 'Description': 'File mode to set', 'Type': 'string', 'Default': '/'},
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to change mode of', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'chown': {
+            'name': 'chown',
+            'author': 'GNU Project',
+            'description': 'Change file owner and group',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'owner', 'Optional': 'no', 'Description': 'New owner', 'Type': 'string', 'Default': '/'},
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to change owner of', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'ps': {
+            'name': 'ps',
+            'author': 'GNU Project',
+            'description': 'Report a snapshot of current processes',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': []
+        },
+        'top': {
+            'name': 'top',
+            'author': 'Various',
+            'description': 'Display Linux tasks',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': []
+        },
+        'nano': {
+            'name': 'nano',
+            'author': 'GNU Project',
+            'description': 'Simple text editor',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to edit', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'vim': {
+            'name': 'vim',
+            'author': 'Bram Moolenaar',
+            'description': 'Vi IMproved, a programmers text editor',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to edit', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'echo': {
+            'name': 'echo',
+            'author': 'GNU Project',
+            'description': 'Display a line of text',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'text', 'Optional': 'no', 'Description': 'Text to display', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'find': {
+            'name': 'find',
+            'author': 'GNU Project',
+            'description': 'Search for files in a directory hierarchy',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'path', 'Optional': 'no', 'Description': 'Path to search', 'Type': 'string', 'Default': '/'},
+                {'Argument': 'expression', 'Optional': 'no', 'Description': 'Expression to search for', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'tar': {
+            'name': 'tar',
+            'author': 'GNU Project',
+            'description': 'Store, list, or extract files in an archive',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'Tar file to operate on', 'Type': 'string', 'Default': '/'},
+                {'Argument': '--create', 'Optional': 'yes', 'Description': 'Create a new archive', 'Type': 'flag', 'Default': 'False'},
+                {'Argument': '--extract', 'Optional': 'yes', 'Description': 'Extract files from an archive', 'Type': 'flag', 'Default': 'False'}
+            ]
+        },
+        'gzip': {
+            'name': 'gzip',
+            'author': 'GNU Project',
+            'description': 'Compress files',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to compress', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'gunzip': {
+            'name': 'gunzip',
+            'author': 'GNU Project',
+            'description': 'Decompress files',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to decompress', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'zip': {
+            'name': 'zip',
+            'author': 'Info-ZIP',
+            'description': 'Package and compress files',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to compress', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'unzip': {
+            'name': 'unzip',
+            'author': 'Info-ZIP',
+            'description': 'Extract compressed files',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'file', 'Optional': 'no', 'Description': 'File to extract', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'wget': {
+            'name': 'wget',
+            'author': 'GNU Project',
+            'description': 'Retrieve files from the web',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'url', 'Optional': 'no', 'Description': 'URL to retrieve', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'curl': {
+            'name': 'curl',
+            'author': 'Daniel Stenberg',
+            'description': 'Transfer data from or to a server',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'url', 'Optional': 'no', 'Description': 'URL to transfer data from/to', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'ssh': {
+            'name': 'ssh',
+            'author': 'OpenSSH',
+            'description': 'OpenSSH remote login client',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'host', 'Optional': 'no', 'Description': 'Host to connect to', 'Type': 'string', 'Default': '/'}
+            ]
+        },
+        'scp': {
+            'name': 'scp',
+            'author': 'OpenSSH',
+            'description': 'Secure copy (remote file copy program)',
+            'is_a_game': 'no',
+            'is_secret': 'no',
+            'arguments': [
+                {'Argument': 'source', 'Optional': 'no', 'Description': 'Source file to copy', 'Type': 'string', 'Default': '/'},
+                {'Argument': 'destination', 'Optional': 'no', 'Description': 'Destination to copy to', 'Type': 'string', 'Default': '/'}
+            ]
+        }

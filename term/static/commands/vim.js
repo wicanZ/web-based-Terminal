@@ -6,8 +6,28 @@ export default {
             return;
         }
 
-        // Fetch file content (mocked for demonstration)
-        const fileContent = "// Sample file content\nconsole.log('Hello, world!');";
+        // Fetch file content from backend
+        let fileContent = '';
+        try {
+            const response = await fetch('/get_file/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': terminal.getCookie('csrftoken')
+                },
+                body: JSON.stringify({ fileName })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                fileContent = data.content || ''; // Use the fetched file content
+            } else {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+        } catch (error) {
+            terminal.printError(`Error fetching file content: ${error.message}`);
+            return;
+        }
 
         // Create the editor container
         const editorContainer = document.createElement('div');
@@ -49,8 +69,11 @@ export default {
             try {
                 const response = await fetch('/save_file/', {
                     method: 'POST',
-                    body: JSON.stringify({ fileName, content: newContent }),
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': terminal.getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ fileName, content: newContent })
                 });
 
                 if (response.ok) {

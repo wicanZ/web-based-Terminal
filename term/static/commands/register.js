@@ -15,11 +15,27 @@ export default {
             });
         };
 
+        const isEmpty = (text) => {
+            if (text.trim() === '') {
+                terminal.printLine('Input cannot be empty.');
+                return true;
+            }
+            return false;
+        };
+
         try {
-            const username = await promptUser('Enter username: ');
+            let username;
+            do {
+                username = await promptUser('Enter username: ');
+            } while (isEmpty(username));
+
             terminal.printLine(`Captured username: ${username}`);
 
-            const password = await promptUser('Enter password: ', true);
+            let password;
+            do {
+                password = await promptUser('Enter password: ', true);
+            } while (isEmpty(password));
+
             terminal.printLine(`Captured password: ${password}`);
 
             const response = await fetch('/register/', {
@@ -36,7 +52,7 @@ export default {
                     terminal.printLine('Registration successful!');
                     terminal.isLoggedIn = true;
                     terminal.username = username;
-                    localStorage.setItem('is_logged_in', true);
+                    localStorage.setItem('is_logged_in', 'true');
                     localStorage.setItem('username', username);
                 } else {
                     terminal.printLine('Registration failed: ' + result.message);
