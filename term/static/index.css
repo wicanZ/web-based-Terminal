@@ -335,7 +335,7 @@ li.selected {
 
 #terminal {
     flex-grow: 1; /* Allow the terminal to expand */
-    padding: 20px; /* Add padding inside the terminal */
+    padding: 10px; /* Add padding inside the terminal */
     overflow-y: auto; /* Enable vertical scrolling */
     white-space: pre-wrap; /* Preserve whitespace and line breaks */
     display: flex;
@@ -344,13 +344,12 @@ li.selected {
     background: #1e1e1e; /* Dark background for terminal */
     color: #cfcfcf; /* Light text color for contrast */
     border: 2px solid #00ff00; /* Green border for classic terminal look */
-    margin: 20px; /* Add margin around the terminal */
+    margin: 10px; /* Add margin around the terminal */
     border-radius: 10px; /* Rounded corners for a softer look */
     box-shadow: 0 0 20px rgba(0, 255, 0, 0.5); /* Glowing green shadow */
     font-family: 'Courier New', Courier, monospace; /* Monospace font for terminal text */
-    font-size: 14px; /* Size of the terminal text */
     line-height: 1.5; /* Space between lines for readability */
-    position: relative; /* Position relative for pseudo-elements */
+    /* position: relative;  */
     height: 100%; /* Ensure terminal takes full height of its container */
 }
 
@@ -411,7 +410,6 @@ li.selected {
 
 
 #ascii-art {
-    font-size: 20px;
     color: green;
     text-align: center;
 }
@@ -438,7 +436,6 @@ li.selected {
     border: none;
     color: #fff;
     font-family: monospace;
-    font-size: 16px;
     outline: none;
 }
 
@@ -640,7 +637,6 @@ ul li:hover {
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 14px;
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 5px;
@@ -654,3 +650,4 @@ ul li:hover {
 .controls button:active {
     transform: translateY(2px);
 }
+

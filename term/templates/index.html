@@ -125,8 +125,8 @@
         </div> -->
     </div>
 
-    <script src="{% static 'index.js' %}"></script>
-    <script src="{% static 'term.js' %}"></script>
+    <script type="module" src="{% static 'index.js' %}"></script>
+    <!-- <script src="{% static 'term.js' %}"></script> -->
     <script>
         // Fetch the JSON file
         fetch("{% static 'data.json' %}")

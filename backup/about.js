@@ -1,6 +1,7 @@
 export default {
     execute: async function(args, terminal) {
         // Create the popup container
+        terminal.inputCallback = false ;
         const popupContainer = document.createElement('div');
         popupContainer.id = 'aboutme-popup';
         popupContainer.style.position = 'fixed';
@@ -9,7 +10,7 @@ export default {
         popupContainer.style.transform = 'translate(-50%, -50%) scale(0)';
         popupContainer.style.width = '80%';
         popupContainer.style.height = '80%';
-        popupContainer.style.backgroundColor = '#f0f0f0';
+        popupContainer.style.backgroundColor = '#985643';
         popupContainer.style.border = '1px solid #000';
         popupContainer.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
         popupContainer.style.padding = '20px';

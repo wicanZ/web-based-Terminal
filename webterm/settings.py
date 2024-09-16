@@ -20,7 +20,6 @@ ALLOWED_HOSTS = [
     host,
     'mking11.pythonanywhere.com',
     '127.0.0.1',
-    
 ]
 
 
@@ -34,6 +33,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+
     'term',
 ]
 
@@ -45,7 +48,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'term.middleware.AccessControlMiddleware'
+    
+    
+    'term.middleware.AccessControlMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'webterm.urls'
@@ -65,6 +71,12 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
 
 WSGI_APPLICATION = 'webterm.wsgi.application'
 
@@ -104,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -129,6 +141,16 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB, adjust as neede
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # settings.py
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:9000",
+    "http://localhost:9000",
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.example.com'  # Replace with your email provider's SMTP server

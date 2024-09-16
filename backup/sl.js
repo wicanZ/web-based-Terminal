@@ -1,5 +1,6 @@
 export default {
     execute: async function(args, terminal) {
+        terminal.clear();
         terminal.displayOutput('Starting SL...');
 
         // Create a container for the animation
@@ -19,13 +20,13 @@ export default {
           |  []   []   []   []  ||
           |  []   []   []   []  ||
 __________|____________________|/_________
-==============  SL  ================
+==============  TRSH  ================
         `;
 
         trainContainer.innerHTML = `<pre>${trainAscii}</pre>`;
 
         // Animation parameters
-        const speed = 5; // Speed of the train in pixels per frame
+        const speed = 10; // Speed of the train in pixels per frame
         const interval = 50; // Interval between each frame
 
         let position = -100; // Initial position off-screen
@@ -34,8 +35,9 @@ __________|____________________|/_________
         const moveTrain = () => {
             position += speed;
             trainContainer.style.left = position + 'px';
+            const width = window.innerWidth ;
 
-            if (position > window.innerWidth) {
+            if (position > width - 450) {
                 // Train has crossed the screen, reset position
                 position = -100;
                 trainContainer.style.left = position + 'px';

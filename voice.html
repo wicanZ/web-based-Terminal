@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: white;
+        }
+        canvas {
+            border: 1px solid #fff;
+        }
+        select {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: 1px solid white;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <select id="visualizerSelect">
+        <option value="bars">Frequency Bars</option>
+        <option value="circle">Circular Visualizer</option>
+        <option value="waveform">Waveform Visualizer</option>
+        <option value="particles">Particle Visualizer</option>
+    </select>
+    <canvas id="voiceVisualizer"></canvas>
+
+    <script>
+        const canvas = document.getElementById('voiceVisualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const selectElement = document.getElementById('visualizerSelect');
+        let currentVisualizer = 'bars';
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        selectElement.addEventListener('change', (event) => {
+            currentVisualizer = event.target.value;
+        });
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                const audioContext = new AudioContext();
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                const particles = [];
+
+                function createParticle(x, y, size, speed, color) {
+                    return { x, y, size, speed, color, vx: (Math.random() - 0.5) * speed, vy: (Math.random() - 0.5) * speed };
+                }
+
+                function updateParticles() {
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.size *= 0.98;
+                    });
+                    particles.filter(p => p.size > 0.5);
+                }
+
+                function drawParticles() {
+                    particles.forEach(p => {
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        canvasCtx.fillStyle = p.color;
+                        canvasCtx.fill();
+                    });
+                }
+
+                function draw() {
+                    requestAnimationFrame(draw);
+                    analyser.getByteFrequencyData(dataArray);
+
+                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    if (currentVisualizer === 'bars') {
+                        // Frequency Bars Visualizer
+                        const barWidth = (canvas.width / bufferLength) * 2.5;
+                        let barHeight;
+                        let x = 0;
+
+                        for (let i = 0; i < bufferLength; i++) {
+                            barHeight = dataArray[i];
+                            const red = barHeight + 25 * (i / bufferLength);
+                            const green = 250 * (i / bufferLength);
+                            const blue = 50;
+
+                            canvasCtx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                            canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+
+                            x += barWidth + 1;
+                        }
+
+                    } else if (currentVisualizer === 'circle') {
+                        // Circular Visualizer
+                        const centerX = canvas.width / 2;
+                        const centerY = canvas.height / 2;
+                        const radius = Math.min(centerX, centerY) / 2;
+                        const angleStep = (Math.PI * 2) / bufferLength;
+
+                        for (let i = 0; i < bufferLength; i++) {
+                            const barHeight = dataArray[i];
+                            const angle = i * angleStep;
+
+                            const xStart = centerX + Math.cos(angle) * radius;
+                            const yStart = centerY + Math.sin(angle) * radius;
+                            const xEnd = centerX + Math.cos(angle) * (radius + barHeight / 2);
+                            const yEnd = centerY + Math.sin(angle) * (radius + barHeight / 2);
+
+                            const red = barHeight + 25 * (i / bufferLength);
+                            const green = 250 * (i / bufferLength);
+                            const blue = 50;
+
+                            canvasCtx.strokeStyle = `rgb(${red}, ${green}, ${blue})`;
+                            canvasCtx.lineWidth = 2;
+                            canvasCtx.beginPath();
+                            canvasCtx.moveTo(xStart, yStart);
+                            canvasCtx.lineTo(xEnd, yEnd);
+                            canvasCtx.stroke();
+                        }
+
+                    } else if (currentVisualizer === 'waveform') {
+                        // Waveform Visualizer
+                        analyser.getByteTimeDomainData(dataArray);
+                        canvasCtx.lineWidth = 2;
+                        canvasCtx.strokeStyle = 'rgb(0, 255, 0)';
+
+                        canvasCtx.beginPath();
+                        const sliceWidth = canvas.width / bufferLength;
+                        let x = 0;
+
+                        for (let i = 0; i < bufferLength; i++) {
+                            const v = dataArray[i] / 128.0;
+                            const y = v * canvas.height / 2;
+
+                            if (i === 0) {
+                                canvasCtx.moveTo(x, y);
+                            } else {
+                                canvasCtx.lineTo(x, y);
+                            }
+
+                            x += sliceWidth;
+                        }
+
+                        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+                        canvasCtx.stroke();
+
+                    } else if (currentVisualizer === 'particles') {
+                        // Particle Visualizer
+                        for (let i = 0; i < bufferLength; i++) {
+                            const barHeight = dataArray[i];
+                            const color = `rgb(${barHeight}, ${100}, ${255 - barHeight})`;
+                            particles.push(createParticle(canvas.width / 2, canvas.height / 2, barHeight / 5, 5, color));
+                        }
+
+                        updateParticles();
+                        drawParticles();
+                    }
+                }
+
+                draw();
+            })
+            .catch(err => {
+                console.error('Error accessing microphone: ', err);
+            });
+    </script>
+</body>
+</html>
+

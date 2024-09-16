@@ -1,22 +1,60 @@
-from django.shortcuts import render , redirect
-from django.http import JsonResponse , FileResponse ,HttpResponseForbidden ,HttpResponse
+from django.shortcuts import render , redirect , get_object_or_404 
+from django.http import JsonResponse , FileResponse ,HttpResponseForbidden ,HttpResponse ,HttpResponseNotFound
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import os , subprocess
 import json
 import shutil
 import json
+from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 # Create your views here.
 from webterm import settings
 import datetime
 from django.utils import timezone
+from django.core.files.storage import FileSystemStorage
+from .models import QuizResult , Event , UserCommand 
+from django.utils.dateparse import parse_date
 
-from .models import QuizResult
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+
+# for token generate 
+
+class ObtainAuthToken(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(username=username, password=password)
+
+        if user:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({'token': token.key}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def protected_view(request):
+    return Response({'message': 'This is a protected view accessible only with a valid token.'})
+
+
+
+# quiz test 
 
 QUIZ_START_TIME = timezone.now() + timezone.timedelta(minutes=1)
 RESULT_AVAILABLE_TIME = QUIZ_START_TIME + timezone.timedelta(minutes=10)
+
+
 
 def get_quiz_start_time(request):
     return JsonResponse({'start_time': QUIZ_START_TIME.isoformat()})
@@ -45,6 +83,7 @@ def get_quiz_results(request):
         'result_available_time': RESULT_AVAILABLE_TIME.isoformat()
     })
 
+
 def Homepage(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     #print(user_agent)
@@ -60,6 +99,9 @@ def document( request ) :
 def ctf_home(request) :
     template = 'ctfdocument.html'
     return render(request  ,template, context={})
+
+
+
 
 # # In-memory file system structure
 # file_system = {
@@ -190,24 +232,7 @@ def generate_man_page_html(command):
                 {'Argument': 'file', 'Optional': 'no', 'Description': 'File to create/update', 'Type': 'string', 'Default': '/'}
             ]
         },
-        'date': {
-            'name': 'date',
-            'author': 'GNU Project',
-            'description': 'Print or set the system date and time',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': []
-        },
-        'time': {
-            'name': 'time',
-            'author': 'GNU Project',
-            'description': 'Run programs and summarize system resource usage',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'command', 'Optional': 'no', 'Description': 'Command to time', 'Type': 'string', 'Default': '/'}
-            ]
-        },
+       
 
         'rm': {
             'name': 'rm',
@@ -219,28 +244,7 @@ def generate_man_page_html(command):
                 {'Argument': 'file', 'Optional': 'no', 'Description': 'File to remove', 'Type': 'string', 'Default': '/'}
             ]
         },
-        'cp': {
-            'name': 'cp',
-            'author': 'GNU Project',
-            'description': 'Copy files and directories',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'source', 'Optional': 'no', 'Description': 'Source file or directory', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'destination', 'Optional': 'no', 'Description': 'Destination file or directory', 'Type': 'string', 'Default': '/'}
-            ]
-        },
-        'mv': {
-            'name': 'mv',
-            'author': 'GNU Project',
-            'description': 'Move (rename) files',
-            'is_a_game': 'no',
-            'is_secret': 'no',
-            'arguments': [
-                {'Argument': 'source', 'Optional': 'no', 'Description': 'Source file or directory', 'Type': 'string', 'Default': '/'},
-                {'Argument': 'destination', 'Optional': 'no', 'Description': 'Destination file or directory', 'Type': 'string', 'Default': '/'}
-            ]
-        },
+        
  
         # Add more commands as needed
     }
@@ -420,7 +424,8 @@ def execute_command(request):
             new_current_dir = '/'
             response = f'Changed directory to root: {ROOT_PATH}'
     elif cmd == 'pwd':
-        response = current_dir
+        response = new_current_dir
+
     elif cmd == 'cat':
         if args:
             file_path = os.path.join(current_dir_path, args[0])
@@ -615,11 +620,7 @@ def execute_command(request):
     elif cmd == 'ps':
         result = subprocess.run(['ps'], capture_output=True, text=True)
         response = result.stdout
-    elif cmd == 'top':
-        result = subprocess.run(['top', '-b', '-n', '1'], capture_output=True, text=True)
-        response = result.stdout
-    elif cmd == 'echo':
-        response = ' '.join(args)
+
     elif cmd == 'find':
         if len(args) >= 1:
             path = args[0]
@@ -631,37 +632,7 @@ def execute_command(request):
                 response = 'Invalid directory path'
         else:
             response = 'Usage: find <path> [expression]'
-    elif cmd == 'tar':
-        if len(args) >= 2:
-            option = args[0]
-            file_path = args[1]
-            if is_path_within_base_directory(file_path):
-                result = subprocess.run(['tar', option, file_path], capture_output=True, text=True)
-                response = result.stdout
-            else:
-                response = 'Invalid file path'
-        else:
-            response = 'Usage: tar <option> <file>'
-    elif cmd == 'gzip':
-        if args:
-            file_path = os.path.join(current_dir_path, args[0])
-            if is_path_within_base_directory(file_path):
-                subprocess.run(['gzip', file_path], cwd=current_dir_path)
-                response = f'{args[0]} compressed'
-            else:
-                response = 'Invalid file path'
-        else:
-            response = 'Usage: gzip <file>'
-    elif cmd == 'gunzip':
-        if args:
-            file_path = os.path.join(current_dir_path, args[0])
-            if is_path_within_base_directory(file_path):
-                subprocess.run(['gunzip', file_path], cwd=current_dir_path)
-                response = f'{args[0]} decompressed'
-            else:
-                response = 'Invalid file path'
-        else:
-            response = 'Usage: gunzip <file>'
+   
     elif cmd == 'zip':
         if len(args) >= 2:
             zip_file = args[0]
@@ -696,6 +667,7 @@ def execute_command(request):
 
     return JsonResponse({'response': response, 'current_dir': new_current_dir , 'success': True })
 
+
 @csrf_exempt
 def upload_file(request):
     if request.method == 'POST' and 'file' in request.FILES:
@@ -711,14 +683,12 @@ def upload_file(request):
     return JsonResponse({'response': 'No file uploaded', 'current_dir': '/'})
 
 
-    
-
-def serve_resume(request):
-    try :
-        resume_path = os.path.join('/home/tsh/jobfile/', 'Resume.pdf')  # Adjust the path accordingly
-    except Exception as e:
-        return JsonResponse({'response' : ' File does not exist '})
-    return FileResponse(open(resume_path, 'rb'), as_attachment=True, filename='resume.pdf')
+# def serve_resume(request):
+#     try :
+#         resume_path = os.path.join('/home/tsh/jobfile/', 'Resume.pdf')  # Adjust the path accordingly
+#     except Exception as e:
+#         return JsonResponse({'response' : ' File does not exist '})
+#     return FileResponse(open(resume_path, 'rb'), as_attachment=True, filename='resume.pdf')
 
 # def execute_python_script(request, script_name):
 #     script_path = os.path.join('python_scripts', script_name)
@@ -757,7 +727,7 @@ def execute_python_script(request, script_name):
 
 
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login , logout
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.http import JsonResponse, HttpResponseBadRequest # type : ignore
@@ -769,29 +739,68 @@ from django.views.decorators.http import require_GET # type: ignore
 def check_login_status_anonymous(request):
     return JsonResponse({'logged_in': False})
 
+# @csrf_exempt
+# def upload_command(request):
+#     if request.method == 'POST' and 'command' in request.FILES:
+#         command_file = request.FILES['command']
+#         print(command_file)
+
+#         # Ensure the directory exists
+#         directory = os.path.join(settings.BASE_DIR, 'term/static', 'commands')
+#         os.makedirs(directory, exist_ok=True)
+
+#         file_path = os.path.join(directory, command_file.name)
+#         print(file_path)
+
+#         try:
+#             with open(file_path, 'wb') as f:  # Use 'wb' for binary mode
+#                 for chunk in command_file.chunks():
+#                     f.write(chunk)
+#             return JsonResponse({"message": "Command uploaded successfully"})
+#         except Exception as e:
+#             return HttpResponseBadRequest(f"Failed to write file: {str(e)}")
+
+#     return HttpResponseBadRequest("Invalid request method")
+
+@login_required
+@require_POST
 @csrf_exempt
 def upload_command(request):
-    if request.method == 'POST' and 'command' in request.FILES:
-        command_file = request.FILES['command']
-        print(command_file)
+    #if request.method == 'POST' and 'command' in request.FILES:
+    if 'command_file' not in request.FILES:
+        return JsonResponse({'error': 'No command file provided'}, status=400)
 
-        # Ensure the directory exists
-        directory = os.path.join(settings.BASE_DIR, 'term/static', 'commands')
-        os.makedirs(directory, exist_ok=True)
+    command_file = request.FILES['command_file']
+    file_name = request.POST.get('file_name', None)
+    user_id = request.POST.get('user_id', None)
+    print('============' , command_file , file_name , user_id ) ;
 
-        file_path = os.path.join(directory, command_file.name)
-        print(file_path)
+    if not file_name:
+        return JsonResponse({'error': 'File name is required'}, status=400)
+    
+    if not user_id:
+        return JsonResponse({'error': 'User ID is required'}, status=400)
+    
+    # Check if the file already exists in the 'commands/' directory
+    directory = os.path.join(settings.BASE_DIR, 'term/static', 'commands')
+    file_path = os.path.join(directory, file_name)
+    if os.path.exists(file_path):
+        return JsonResponse({'error': 'A command file with this name already exists.'}, status=400)
 
-        try:
-            with open(file_path, 'wb') as f:  # Use 'wb' for binary mode
-                for chunk in command_file.chunks():
-                    f.write(chunk)
-            return JsonResponse({"message": "Command uploaded successfully"})
-        except Exception as e:
-            return HttpResponseBadRequest(f"Failed to write file: {str(e)}")
+    # Save the command file
+    fs = FileSystemStorage(location=directory)
+    saved_file_path = fs.save(file_name, command_file)
 
-    return HttpResponseBadRequest("Invalid request method")
+    # Create the UserCommand record
+    from django.contrib.auth.models import User
+    user = get_object_or_404(User, username=user_id)
 
+    command = UserCommand.objects.create(
+        user=user,
+        file_name=file_name,
+        command_file=saved_file_path
+    )
+    return JsonResponse({'message': 'Command file added successfully', 'id': command.id})
 
 
 @csrf_exempt
@@ -840,11 +849,15 @@ def login_view(request):
             return JsonResponse({'success': False, 'message': 'Invalid credentials'})
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
-@login_required     
+@login_required
 def check_login_status(request):
-    is_logged_in = request.session.get('is_logged_in', False)
-    username = request.session.get('username', '')
-    return JsonResponse({'is_logged_in': is_logged_in, 'username': username, 'ip': get_client_ip(request)})
+    is_logged_in = request.user.is_authenticated
+    username = request.user.username if is_logged_in else ''
+    return JsonResponse({
+        'is_logged_in': is_logged_in,
+        'username': username,
+        'ip': get_client_ip(request)
+    })
 
 
 @csrf_exempt
@@ -858,7 +871,7 @@ def register_view(request):
             return JsonResponse({'success': False, 'message': 'Username already exists'})
 
         user = User.objects.create_user(username=username, password=password)
-        user.save()
+        # user.save()
 
         # Automatically log the user in after registration
         login(request, user)
@@ -868,6 +881,12 @@ def register_view(request):
         return JsonResponse({'success': True, 'user': username})
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
+@login_required
+def logout_view(request):
+    # Log the user out
+    #logout(request)
+    # Return a response
+    return JsonResponse({'message': 'You have been logged out successfully'})
 
 def get_filecommand(request, file_name):
     print(f"Requested file: {file_name}")  # Debugging output
@@ -876,7 +895,7 @@ def get_filecommand(request, file_name):
     if '../' in file_name or file_name.startswith('/'):
         return JsonResponse({'error': 'Invalid file name'}, status=400)
 
-    file_path = os.path.join('static', 'commands', file_name)
+    file_path = os.path.join('term/static', 'commands', file_name)
     print(f"File path: {file_path}")  # Debugging output
 
     if not os.path.isfile(file_path):
@@ -973,8 +992,282 @@ def save_file_vim(request):
 def list_commands(request):
     commands_dir = os.path.join(settings.BASE_DIR, 'term/static', 'commands')
     command_files = [f for f in os.listdir(commands_dir) if f.endswith('.js')]
+    print('Total Command :' , len(command_files) + 1 ) 
+    print('command Name : ' , command_files )
     return JsonResponse(command_files, safe=False)
 
+
+
+def get_command_file(request, command_name):
+    # Define the directory where the command files are stored
+    commands_dir = os.path.join(settings.BASE_DIR, 'term/static/commands')
+    
+    # Define the path to the requested command file
+    command_file_path = os.path.join(commands_dir, f'{command_name}.js')
+
+    # Check if the command file exists
+    if os.path.exists(command_file_path):
+        with open(command_file_path, 'r') as file:
+            command_content = file.read()
+        return JsonResponse({'command': command_content})
+    else:
+        return HttpResponseNotFound(f'Command "{command_name}" not found.')
+
+from .models import Report
+import json
+
+@require_POST
+def submit_report(request):
+    try:
+        # Parse the incoming JSON data
+        data = json.loads(request.body)
+        content = data.get('content', '')
+        line_number = data.get('line_number', None)
+
+        # Ensure content and line_number are valid
+        if not content or line_number is None:
+            return JsonResponse({'error': 'Invalid data'}, status=400)
+
+        # Create a new report and save it to the database
+        report = Report.objects.create(content=content, line_number=line_number)
+
+        # Return success response
+        return JsonResponse({'message': 'Report submitted successfully', 'id': report.id})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+@require_POST
+def add_report(request):
+    try:
+        # Parse the JSON data from the request
+        data = json.loads(request.body)
+        content = data.get('content')
+        line_number = data.get('line_number')
+
+        # Validate the input data
+        if not content or line_number is None:
+            return JsonResponse({'error': 'Content and line number are required'}, status=400)
+
+        # Create the new report
+        report = Report.objects.create(content=content, line_number=line_number)
+
+        # Return a success response with the new report's ID
+        return JsonResponse({'message': 'Report added successfully', 'id': report.id})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+def list_reports(request):
+    reports = Report.objects.all().order_by('-created_at')  # List all reports, most recent first
+    report_list = [
+        {
+            'id': report.id,
+            'content': report.content,
+            'created_at': report.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'line_number': report.line_number
+        }
+        for report in reports
+    ]
+    return JsonResponse(report_list, safe=False)
+def get_report(request, report_id):
+    try:
+        report = Report.objects.get(id=report_id)
+        return JsonResponse({
+            'id': report.id,
+            'content': report.content,
+            'created_at': report.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'line_number': report.line_number
+        })
+    except Report.DoesNotExist:
+        return HttpResponseNotFound('Report not found')
+    
+@require_POST
+def update_report(request, report_id):
+    try:
+        report = Report.objects.get(id=report_id)
+        data = json.loads(request.body)
+        new_content = data.get('content', report.content)  # Update content if provided
+        new_line_number = data.get('line_number', report.line_number)  # Update line number if provided
+
+        report.content = new_content
+        report.line_number = new_line_number
+        report.save()
+
+        return JsonResponse({'message': f'Report {report.id} updated successfully'})
+    except Report.DoesNotExist:
+        return HttpResponseNotFound('Report not found')
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+@require_POST
+def delete_report(request, report_id):
+    try:
+        report = Report.objects.get(id=report_id)
+        report.delete()
+        return JsonResponse({'message': f'Report {report_id} deleted successfully'})
+    except Report.DoesNotExist:
+        return HttpResponseNotFound('Report not found')
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+# payment 
+   # 
+   # 
+#
+# 
+# client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+# @csrf_exempt
+# @login_required
+# def initiate_payment(request):
+#     if request.method == 'POST':
+#         amount = int(request.POST.get('amount')) * 100  # Convert to paise
+#         phone_number = request.POST.get('phone_number')
+
+#         payment = client.order.create({
+#             "amount": amount,
+#             "currency": "INR",
+#             "payment_capture": 1,
+#         })
+
+#         return JsonResponse({
+#             "success": True,
+#             "order_id": payment['id'],
+#             "amount": amount,
+#         })
+#     return JsonResponse({"success": False, "message": "Invalid request"})
+
+# @csrf_exempt
+# @login_required
+# def payment_success(request):
+#     if request.method == 'POST':
+#         payment_id = request.POST.get('payment_id')
+#         order_id = request.POST.get('order_id')
+#         signature = request.POST.get('signature')
+#         amount = int(request.POST.get('amount')) / 100  # Convert to INR
+
+#         try:
+#             client.utility.verify_payment_signature({
+#                 'razorpay_order_id': order_id,
+#                 'razorpay_payment_id': payment_id,
+#                 'razorpay_signature': signature
+#             })
+
+#             # Update user balance here
+#             user = request.user
+#             user.balance += amount
+#             user.save()
+
+#             # Record payment success
+#             Payment.objects.create(user=user, amount=amount, status='success')
+
+#             return JsonResponse({"success": True, "message": "Payment successful"})
+#         except razorpay.errors.SignatureVerificationError:
+#             # Record payment failure
+#             Payment.objects.create(user=request.user, amount=amount, status='fail')
+
+#             return JsonResponse({"success": False, "message": "Payment verification failed"})
+#     return JsonResponse({"success": False, "message": "Invalid request"})
+ 
+
+# app name
+# from .models import App, InstalledApp
+
+# def search_app(request, app_name):
+#     apps = App.objects.filter(name__icontains=app_name)
+#     app_data = [
+#         {
+#             'name': app.name,
+#             'version': app.version,
+#             'description': app.description,
+#         }
+#         for app in apps
+#     ]
+#     return JsonResponse({'apps': app_data})
+
+# def view_app(request, app_name):
+#     try:
+#         app = App.objects.get(name=app_name)
+#         app_data = {
+#             'name': app.name,
+#             'version': app.version,
+#             'description': app.description,
+#             'size': app.size,
+#             'developer': app.developer,
+#             'download_url': app.download_url,
+#         }
+#         return JsonResponse(app_data)
+#     except App.DoesNotExist:
+#         return JsonResponse({'error': 'App not found'}, status=404)
+
+# @login_required
+# def install_app(request, app_name):
+#     try:
+#         app = App.objects.get(name=app_name)
+#         InstalledApp.objects.create(user=request.user, app=app, version=app.version)
+#         return JsonResponse({'message': f'{app_name} installed successfully.'})
+#     except App.DoesNotExist:
+#         return JsonResponse({'error': 'App not found'}, status=404)
+
+# @login_required
+# def list_installed_apps(request):
+#     installed_apps = InstalledApp.objects.filter(user=request.user)
+#     app_data = [
+#         {
+#             'name': installed_app.app.name,
+#             'version': installed_app.version,
+#             'installed_at': installed_app.installed_at,
+#         }
+#         for installed_app in installed_apps
+#     ]
+#     return JsonResponse({'installed_apps': app_data})
+
+
+
+
+# app 
+# from django.core.exceptions import ValidationError
+# from .models import Command
+# 
+
+# @login_required
+# @require_POST
+# def create_command(request):
+#     name = request.POST.get('name')
+#     description = request.POST.get('description')
+#     code = request.POST.get('code')
+
+#     # Ensure command name is unique
+#     if Command.objects.filter(name=name).exists():
+#         return JsonResponse({'error': 'A command with this name already exists.'}, status=400)
+
+#     # Create the command
+#     Command.objects.create(
+#         name=name,
+#         description=description,
+#         code=code,
+#         created_by=request.user
+#     )
+#     return JsonResponse({'message': 'Command created successfully.'})
+
+# @login_required
+# @require_POST
+# def update_command(request, command_id):
+#     try:
+#         command = Command.objects.get(id=command_id, created_by=request.user)
+#     except Command.DoesNotExist:
+#         return JsonResponse({'error': 'Command not found or you do not have permission to modify it.'}, status=404)
+
+#     command.description = request.POST.get('description', command.description)
+#     command.code = request.POST.get('code', command.code)
+#     command.save()
+#     return JsonResponse({'message': 'Command updated successfully.'})
+
+# @login_required
+# def list_commands(request):
+#     commands = Command.objects.filter(created_by=request.user)
+#     command_data = [{'name': command.name, 'description': command.description} for command in commands]
+#     return JsonResponse({'commands': command_data})
 # ctf flag
 
 @csrf_exempt
@@ -1124,3 +1417,25 @@ def submit_flag(request):
             return JsonResponse({'success': False, 'message': 'Incorrect flag. Try again!'})
 
     return JsonResponse({'message': 'Send a POST request with your flag to validate it.'})
+
+
+# Event views 
+@csrf_exempt
+def create_event(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        print('- Event : ',data )
+        text = data.get('text')
+        date = parse_date(data.get('date'))
+        if text and date:
+            event = Event.objects.create(user=request.user ,text=text, date=date)
+            return JsonResponse({'success': True, 'event': {'id': event.id, 'text': event.text, 'date': event.date}})
+        return JsonResponse({'success': False, 'message': 'Invalid data'})
+    return JsonResponse({'message': 'Send a POST request with event text and date.'})
+
+@csrf_exempt
+def get_events(request):
+    if request.method == 'GET':
+        events = Event.objects.all().values('id', 'text', 'date')
+        return JsonResponse({'events': list(events)})
+    return JsonResponse({'message': 'Send a GET request to retrieve events.'})

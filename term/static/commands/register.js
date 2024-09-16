@@ -1,16 +1,40 @@
+// ./commands/register.js
+
 export default {
     execute: async function(args, terminal) {
         const promptUser = (question, hideInput = false) => {
             return new Promise(resolve => {
                 const originalCallback = terminal.inputCallback;
+                let inputBuffer = '';
+
+                const inputHandler = (event) => {
+                    if (hideInput) {
+                        const key = event.inputType === 'deleteContentBackward' ? 'Backspace' : event.data;
+                        if (key === 'Backspace') {
+                            inputBuffer = inputBuffer.slice(0, -1);
+                        } else if (key) { // Only capture single characters
+                            inputBuffer += key;
+                        }
+                        terminal.inputElement.value = '#'.repeat(inputBuffer.length);
+                    }
+                };
+
                 terminal.inputCallback = (input) => {
                     terminal.inputCallback = originalCallback; // Restore original callback
                     terminal.inputElement.type = 'text'; // Reset input type
-                    resolve(input.trim());
+                    terminal.inputElement.removeEventListener('input', inputHandler); // Remove input handler
+                    resolve(inputBuffer.trim());
                 };
+
                 terminal.print(question);
                 if (hideInput) {
-                    terminal.inputElement.type = 'password';
+                    terminal.inputElement.type = 'text'; // Set input type to text to handle masking
+                    terminal.inputElement.addEventListener('input', inputHandler); // Add input handler
+                } else {
+                    terminal.inputCallback = (input) => {
+                        terminal.inputCallback = originalCallback; // Restore original callback
+                        resolve(input.trim());
+                    };
                 }
             });
         };
@@ -22,6 +46,14 @@ export default {
             }
             return false;
         };
+
+        const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+        const username = localStorage.getItem('username');
+
+        if (isLoggedIn && username) {
+            terminal.printLine(`You are already logged in as ${username}.`);
+            return;
+        }
 
         try {
             let username;
@@ -54,6 +86,7 @@ export default {
                     terminal.username = username;
                     localStorage.setItem('is_logged_in', 'true');
                     localStorage.setItem('username', username);
+                    localStorage.setItem('userIp', result.ip);
                 } else {
                     terminal.printLine('Registration failed: ' + result.message);
                 }

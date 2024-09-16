@@ -166,7 +166,7 @@ class Terminal {
         this.commands = {};
         this.commandCache = {};
         this.isScrolledToBottom = this.element.scrollHeight - this.element.clientHeight <= this.element.scrollTop + 1;
-        this.typingSpeed = 50;
+        this.typingSpeed = 35;
 
         // Bind event listeners
         this.inputElement.addEventListener('keydown', this.handleKeyDown.bind(this));
@@ -177,9 +177,7 @@ class Terminal {
         this.newTabButton.addEventListener('click', this.addNewTab.bind(this));
         this.initializeFirstTab();
         this.style = new TerminalStyle(this.element);
-        //this.style.resetStyles();
         // this.newTabButton.addEventListener('click', () => this.addNewTab());
-        // this.initializeFirstTab();
         this.loadStyleFromStorage();
         //this.checkLoginStatus();
         //document.addEventListener('keydown', (event) => this.handleShortcut(event));
@@ -223,7 +221,7 @@ class Terminal {
                 if (quizStartTime > now) {
                     this.printLine(`Quiz will start at: ${quizStartTime}`);
                 } else {
-                    this.printLine('The quiz has already started or finished.');
+                    this.printLine('Time to start the quiz type $ quiz');
                 }
             } else {
                 this.printLine('Error: Unable to fetch quiz start time.');
@@ -232,6 +230,7 @@ class Terminal {
             this.printLine('Error: Unable to fetch quiz start time.');
         }
     }
+
     getCurrentUser() {
         return this.isLoggedIn ? this.username : 'Guest';
     }
@@ -243,11 +242,33 @@ class Terminal {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const status = await response.json();
-            this.updatePrompt(status);
+    
+            if (status.is_logged_in) {
+                // User is logged in, do nothing or update UI accordingly
+                this.updatePrompt(status);
+            } else {
+                // User is not logged in, clear session and localStorage
+                console.log('User is not logged in, clearing storage...');
+                this.clearStorage();
+                this.updatePrompt({ logged_in: false });
+            }
         } catch (error) {
             console.error('Error fetching login status:', error);
+            this.clearStorage();  // Also clear storage in case of any error (e.g., 403 or session expired)
             this.updatePrompt({ logged_in: false });
         }
+    }
+    
+    clearStorage() {
+        // Clear sessionStorage
+        //sessionStorage.clear();
+    
+        // Clear localStorage
+        localStorage.clear();
+    
+        // Optionally, you can clear specific keys if you don't want to clear everything
+        // localStorage.removeItem('key');
+        // sessionStorage.removeItem('key');
     }
 
     captureInput(callback) {
@@ -293,13 +314,12 @@ class Terminal {
     printLine(text, className = '') {
         const line = document.createElement("div");
         line.className = className;
-        line.textContent = text;
+        line.innerHTML = text; // textContent
         this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight + 10;
         if (this.isScrolledToBottom) {
             this.element.scrollTop = this.element.scrollHeight + 10;
         }
-
     }
     async animateTextLine(text) {
         const line = document.createElement('div');
@@ -339,7 +359,7 @@ class Terminal {
         const lines = text.split('\n');
         for (let line of lines) {
             this.printLine(line);
-            await new Promise(resolve => setTimeout(resolve, this.typingSpeed));
+            await new Promise(resolve => setTimeout(resolve, this.typingSpeed || 30 ));
         }
         this.outputElement.scrollTop = this.outputElement.scrollHeight + 10;
         if (this.isScrolledToBottom) {
@@ -357,6 +377,13 @@ class Terminal {
             this.element.scrollTop = this.element.scrollHeight + 10;
         }
     }
+    printHelp() {
+        // Print help information about available commands
+        Object.keys(this.commands).forEach(command => {
+            const { description } = this.commands[command];
+            this.printLine(`${command}: ${description}`);
+        });
+    }
 
     async animatePrint(message) {
         const p = document.createElement('p');
@@ -367,26 +394,7 @@ class Terminal {
         }
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
-    printHelp() {
-        // Print help information about available commands
-        Object.keys(this.commands).forEach(command => {
-            const { description } = this.commands[command];
-            this.printLine(`${command}: ${description}`);
-        });
-    }
-    async printsHelp() {
-        const commandList = Object.entries(this.commands).map(([name, commandObj]) => {
-            return { name, description: commandObj.description };
-        });
-
-        for (const cmd of commandList) {
-            await this.printLine(`${cmd.name}: ${cmd.description}`);
-        }
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
-        if (this.isScrolledToBottom) {
-            this.element.scrollTop = this.element.scrollHeight;
-        }
-    }
+    
 
 
     handleKeyDown(event) {
@@ -475,9 +483,11 @@ class Terminal {
         this.inputElement.value = '';
 
         // Set focus on input field
-        this.inputElement.focus();
-        this.element.addEventListener('click', () => {
+        this.element.addEventListener('dblclick',(e) =>{
             this.inputElement.focus();
+        })
+        this.element.addEventListener('click' , () => {
+            this.inputElement.focus() ;
         });
     }
     sleep(ms) {
@@ -585,7 +595,6 @@ class Terminal {
         const span = document.createElement('span');
         span.textContent = text;
         this.outputElement.appendChild(span);
-        this.displayOutput(text);
     }
 
 
@@ -727,56 +736,131 @@ class Terminal {
         this.printLine('Registered successfully.');
     }
 
+    
 
-    // Method to handle command execution
-    async handleCommand(command) {
+    
+    async handleCommand(commandName) {
         // Process the command
+        const command = commandName.trim().toLowerCase();
         const args = command.split(' ');
         const cmds = args[0].trim().toLowerCase();
-        //args.shift();
+    
+        const allowedCommands = ['login', 'register', 'help', 'whoami', 'ls','report']; 
+    
+        // Handle input callback (e.g., for interactive commands)
         if (this.inputCallback) {
             const callback = this.inputCallback;
             this.inputCallback = null;
             callback(command);
             return;
         }
+    
+        // If input is disabled, exit
         if (!this.inputEnabled) return;
-
-
-        if (this.isLoggedIn || command.startsWith('login') || command.startsWith('register') || command.startsWith('help')) {
+    
+        // If user is logged in or the command is in the allowedCommands array
+        if (this.isLoggedIn || allowedCommands.some(cmd => command.startsWith(cmd))) {
+            // Initialize history for the active tab if it's not already present
             if (!Array.isArray(this.commandHistory[this.activeTab])) {
                 this.commandHistory[this.activeTab] = [];
             }
+    
             // Push command into history
             this.commandHistory[this.activeTab].push(command);
             this.historyIndex = this.commandHistory[this.activeTab].length;
-
-            const [cmd, ...options] = command.trim().split(/\s+/); // Split command by any whitespace
-
-            // Example command handling logic (replace with your own)
-
+    
+            // Split command into command and options
+            const [cmd, ...options] = command.trim().split(/\s+/);
+    
+            // Handle empty command
             if (cmd.toLowerCase() === '') {
                 this.outputElement.value = '';
             } else if (this.commands[cmd]) {
+                // Try executing registered command
                 try {
-                    await this.commands[cmd].execute(options, this); // Execute registered command  // args
-
+                    await this.commands[cmd].execute(options, this); // Execute registered command
                 } catch (error) {
                     this.displayOutput(`Error executing command '${cmd}': ${error.message}`);
                 }
             } else {
-                this.suggestCommand(cmd); //this.displayOutput(`Command '${cmd}' not found.`);
+                // Attempt to fetch command from backend
+                try {
+                    const commandExists = await this.fetchCommandFromBackend(cmd);
+                    if (commandExists) {
+                        // If command exists, dynamically execute it
+                        await this.executeFetchedCommand(cmd, options);
+                    } else {
+                        // Suggest an alternative command or handle unknown command
+                        this.suggestCommand(cmd);
+                    }
+                } catch (error) {
+                    this.displayOutput(`Error fetching or executing command '${cmd}': ${error.message}`);
+                }
             }
         } else {
             this.displayOutput('Please log in or register to use the terminal.');
         }
-
-
-
+    
         // Clear input field after command execution
         this.inputElement.value = '';
         this.saveHistory();
     }
+    
+    
+    
+
+
+    // Method to handle command execution
+    // async handleCommand(commandName) {
+    //     // Process the command
+    //     const command = commandName.trim().toLowerCase()
+    //     const args = command.split(' ');
+    //     const cmds = args[0].trim().toLowerCase();
+    //     const allowedCommands = ['login', 'register', 'help','whoami','calculator']; 
+    //     //args.shift();
+    //     if (this.inputCallback) {
+    //         const callback = this.inputCallback;
+    //         this.inputCallback = null;
+    //         callback(command);
+    //         return;
+    //     }
+    //     if (!this.inputEnabled) return;
+
+
+    //     if (this.isLoggedIn || allowedCommands.some(cmd => command.startsWith(cmd))) {
+    //         if (!Array.isArray(this.commandHistory[this.activeTab])) {
+    //             this.commandHistory[this.activeTab] = [];
+    //         }
+    //         // Push command into history
+    //         this.commandHistory[this.activeTab].push(command);
+    //         this.historyIndex = this.commandHistory[this.activeTab].length;
+
+    //         const [cmd, ...options] = command.trim().split(/\s+/); // Split command by any whitespace
+
+    //         // Example command handling logic (replace with your own)
+
+    //         if (cmd.toLowerCase() === '') {
+    //             this.outputElement.value = '';
+    //         } else if (this.commands[cmd]) {
+    //             try {
+    //                 await this.commands[cmd].execute(options, this); // Execute registered command  // args
+
+    //             } catch (error) {
+    //                 this.displayOutput(`Error executing command '${cmd}': ${error.message}`);
+    //             }
+    //         } else {
+    //             this.suggestCommand(cmd); //this.displayOutput(`Command '${cmd}' not found.`);
+    //         }
+    //     } else {
+    //         this.displayOutput('Please log in or register to use the terminal.');
+    //     }
+
+
+
+    //     // Clear input field after command execution
+    //     this.inputElement.value = '';
+    //     this.saveHistory();
+    // }
 
 
 
@@ -1150,9 +1234,36 @@ class Terminal {
         return distance(a, b) <= 2; // Adjust this value to set the threshold for similarity
     }
 
+    async executeFetchedCommand(cmd, options) {
+        if (this.commands[cmd]) {
+            try {
+                await this.commands[cmd](options, this);  // Execute the dynamically loaded command
+            } catch (error) {
+                this.displayOutput(`Error executing command '${cmd}': ${error.message}`);
+            }
+        } else {
+            this.displayOutput(`Command '${cmd}' not found.`);
+        }
+    }
+
+    async fetchCommandFromBackend(cmd) {
+        try {
+            const response = await fetch(`/api/command/${cmd}/`);
+            if (response.ok) {
+                const data = await response.json();
+                // Dynamically store the fetched command
+                this.commands[cmd] = new Function('args', 'terminal', data.command);
+                return true;  // Command was found and fetched successfully
+            }
+        } catch (error) {
+            this.displayOutput(`Error fetching command '${cmd}': ${error.message}`);
+        }
+        return false;  // Command was not found on the backend
+    }
+
     async loadCommand(fileName) {
         const commandName = fileName.replace('.js', '');
-        this.showLoadingIndicator();
+        //this.showLoadingIndicator();
         try {
             const module = await import(`/static/commands/${fileName}`);
             if (module.default && typeof module.default.execute === 'function') {
@@ -1169,36 +1280,14 @@ class Terminal {
             // console.error(`Error loading command ${fileName}:`, error);
             this.displayOutput(`Error loading command ${commandName}: `); //${error.message}
         } finally {
-            this.hideLoadingIndicator();
+            //this.hideLoadingIndicator();
         }
     }
 
 
-    // async loadCommand(fileName) {
-    //     const commandName = fileName.replace('.js', '');
-    //     this.showLoadingIndicator()
-    //     try {
-    //         const module = await import(`/static/commands/${fileName}`);
-    //         if (module.default && typeof module.default.execute === 'function') {
-    //             this.addCommand(commandName, module.default.execute.bind(module.default), module.default.description);
-    //             // Bind additional methods if any
-    //             for (let [key, value] of Object.entries(module.default)) {
-    //                 if (key !== 'execute' && typeof value === 'function') {
-    //                     this.addCommand(`${commandName} ${key}`, value.bind(module.default), `Run ${commandName} ${key}`);
-    //                 }
-    //             }
-    //         } else {
-    //             throw new Error(`Invalid command module: ${fileName}. Missing execute function.`);
-    //         }
-    //     } catch (error) {
-    //         console.error(`Error loading command ${fileName}:`, error);
-    //     } finally {
-    //         this.hideLoadingIndicator();
-    //     }
-    // }
     async loadInitialCommands() {
         try {
-            const response = await fetch('/list_commands/');
+            const response = await fetch('/list-commands/');
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
@@ -1210,6 +1299,9 @@ class Terminal {
             console.error('Error fetching or parsing command list:', error);
         }
     }
+
+
+    
     applyLoadingIndicatorStyles() {
         // Basic styling for the loading indicator
         this.loadingIndicator.style.position = 'fixed';
@@ -1272,27 +1364,8 @@ class Terminal {
     //     this.commands[name] = { execute, description, docString };
     // }
 
-    checkScreenSize() {
-        const width = Window.innerWidth;
-        const height = Window.innerHeight;
-        const tooSmallWidth = 600; // Example threshold for too small width
-        const tooLargeWidth = 1200; // Example threshold for too large width
-
-        if (width < tooSmallWidth) {
-            console.log('Screen is too small.');
-            document.body.classList.add('small-screen');
-            document.body.classList.remove('large-screen');
-        } else if (width > tooLargeWidth) {
-            console.log('Screen is too large.');
-            document.body.classList.add('large-screen');
-            document.body.classList.remove('small-screen');
-        } else {
-            this.displayOutput('Screen size is acceptable.');
-            document.body.classList.remove('small-screen', 'large-screen');
-        }
-    }
-
 }
+
 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1300,8 +1373,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // Example: Display initial prompt
-    //terminal.prompt();
-    terminal.checkScreenSize();
+    terminal.prompt();
+    terminal.hideLoadingIndicator() ;
 
     // Example: Handle form submission or command execution
     // (you'll need to implement this based on your application logic)
@@ -1315,6 +1388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const is_logged_in = localStorage.getItem('is_logged_in') === 'true';
     const username = localStorage.getItem('username');
     const ip = localStorage.getItem('userIp');
+    
 
     if (is_logged_in) {
         terminal.isLoggedIn = true;
@@ -1486,5 +1560,5 @@ function convertTextToStyledOutput(inputText, fontStyle) {
 }
 
 // Example usage: convert "trsh" to styled output in style3
-convertTextToStyledOutput('trsh - terminal', 'style3');
+convertTextToStyledOutput('trsh-shell', 'style3');
 

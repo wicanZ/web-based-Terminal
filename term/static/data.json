@@ -1,7 +1,122 @@
 {
-    "name": "John Doe",
-    "age": 30,
-    "city": "New York"
+  "user": {
+    "id": 12345,
+    "personal_info": {
+      "first_name": "John",
+      "middle_name": "A.",
+      "last_name": "Doe",
+      "gender": "Male",
+      "date_of_birth": "1990-05-15",
+      "age": 34,
+      "nationality": "American",
+      "marital_status": "Single"
+    },
+    "contact_info": {
+      "email": "john.doe@example.com",
+      "phone": {
+        "primary": "+1-555-1234",
+        "secondary": "+1-555-5678"
+      },
+      "address": {
+        "street": "123 Main St",
+        "city": "Anytown",
+        "state": "California",
+        "postal_code": "90210",
+        "country": "USA"
+      },
+      "social_media": {
+        "twitter": "@johndoe",
+        "linkedin": "linkedin.com/in/johndoe",
+        "github": "github.com/johndoe"
+      }
+    },
+    "account_info": {
+      "username": "john_doe",
+      "password_hash": "$2a$12$9D.7Y56wB/qKsz93PQD6RurTj93bJflsJdlqJxIyyMVeFlGsOKFV2",
+      "user_role": "admin",
+      "account_status": "active",
+      "email_verified": true,
+      "phone_verified": false,
+      "two_factor_auth_enabled": true,
+      "signup_date": "2023-01-10T10:15:30Z",
+      "last_login": "2024-09-10T14:45:00Z",
+      "subscription_plan": {
+        "type": "premium",
+        "renewal_date": "2025-01-10"
+      }
+    },
+    "preferences": {
+      "language": "en-US",
+      "timezone": "America/Los_Angeles",
+      "currency": "USD",
+      "newsletter_subscription": true,
+      "dark_mode": false,
+      "notifications": {
+        "email": true,
+        "sms": false,
+        "push": true
+      }
+    },
+    "activity_log": [
+      {
+        "event": "login",
+        "timestamp": "2024-09-10T14:45:00Z",
+        "ip_address": "192.168.1.10",
+        "device": "Chrome Browser on Windows"
+      },
+      {
+        "event": "password_change",
+        "timestamp": "2024-08-25T08:30:00Z",
+        "ip_address": "192.168.1.11",
+        "device": "Firefox Browser on Linux"
+      }
+    ],
+    "permissions": {
+      "read": true,
+      "write": true,
+      "delete": false,
+      "admin_access": true
+    },
+    "payment_info": {
+      "credit_card": {
+        "card_number": "**** **** **** 1234",
+        "card_type": "Visa",
+        "expiry_date": "12/26",
+        "billing_address": {
+          "street": "456 Oak St",
+          "city": "Othertown",
+          "state": "New York",
+          "postal_code": "10001",
+          "country": "USA"
+        }
+      },
+      "payment_history": [
+        {
+          "transaction_id": "TX123456789",
+          "amount": 99.99,
+          "currency": "USD",
+          "date": "2024-01-10T12:00:00Z",
+          "payment_method": "credit_card",
+          "status": "completed"
+        },
+        {
+          "transaction_id": "TX987654321",
+          "amount": 49.99,
+          "currency": "USD",
+          "date": "2023-07-10T12:00:00Z",
+          "payment_method": "paypal",
+          "status": "completed"
+        }
+      ]
+    },
+    "emergency_contacts": [
+      {
+        "name": "Jane Doe",
+        "relationship": "Sister",
+        "phone": "+1-555-9876",
+        "email": "jane.doe@example.com"
+      }
+    ]
+  }
 }
-
 

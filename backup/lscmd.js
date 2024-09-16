@@ -13,7 +13,7 @@ export default {
         // Print the table
         this.printTable(rows, terminal);
     },
-    printTable(rows, terminal) {
+    printTable : async function(rows, terminal) {
         const table = document.createElement('table');
         table.style.width = '100%';
         table.style.borderCollapse = 'collapse';
@@ -24,6 +24,7 @@ export default {
                 const cell = document.createElement('td');
                 cell.style.border = '1px dashed white';
                 cell.style.padding = '5px';
+                cell.style.margin = '10px';
                 cell.innerText = command || '';
                 row.appendChild(cell);
             });
