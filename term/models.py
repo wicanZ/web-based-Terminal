@@ -123,7 +123,9 @@ class UserCommand(models.Model):
 
 
 class Report(models.Model):
+    header = models.CharField(max_length=50)
     content = models.TextField()  # The text of the report
+    file_name = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)  # Automatically set when the report is created
     line_number = models.IntegerField()  # Line number where the report originated
 

@@ -16,7 +16,7 @@ SECRET_KEY = 'django-insecure-&mxby4(26_=olvk^4==@l)$o7ha6sw3(=f0s#4#)xf2d+r)lqb
 DEBUG = True
 host = socket.gethostbyname(socket.gethostname())
 ALLOWED_HOSTS = [
-    '192.168.160.186',
+    '192.168.196.186',
     host,
     'mking11.pythonanywhere.com',
     '127.0.0.1',
@@ -52,6 +52,7 @@ MIDDLEWARE = [
     
     'term.middleware.AccessControlMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'term.middleware.UserActivityLoggingMiddleware'
 ]
 
 ROOT_URLCONF = 'webterm.urls'
@@ -110,6 +111,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Logging
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'user_activity.log',
+        },
+    },
+    'loggers': {
+        'user_activity_logger': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

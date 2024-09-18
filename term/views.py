@@ -16,6 +16,13 @@ from django.core.files.storage import FileSystemStorage
 from .models import QuizResult , Event , UserCommand 
 from django.utils.dateparse import parse_date
 
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login , logout
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
+from django.http import JsonResponse, HttpResponseBadRequest # type : ignore
+from django.views.decorators.http import require_GET # type: ignore
+
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -25,6 +32,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+
+from .main import request_info
 
 # for token generate 
 
@@ -85,12 +94,30 @@ def get_quiz_results(request):
 
 
 def Homepage(request):
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    #print(user_agent)
-    # if user_agent.startswith('Mozilla/5.0') :
-    #     response = 'hello world'
-    #     return JsonResponse({'response': response})
-    return render(request, 'index.html')
+    from .main import detect_user_agent
+    # Get the user's IP address
+    ip_address = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    request_method = request.method
+    request_path = request.path
+    full_url = request.build_absolute_uri()
+    headers = {key: value for key, value in request.META.items() if key.startswith('HTTP_')}
+    if not detect_user_agent(request):
+        return JsonResponse({'error': f'Access denied:{user_agent}'}, status=403)
+
+    # Prepare the data to return
+    data = {
+        'Istar': 'Istar - wise one , wizard',
+        'ip_address': ip_address,
+        'user_agent': user_agent,
+        'method': request_method,
+        'path': request_path,
+        'full_url': full_url,
+        'headers': headers,
+        
+    }
+    return JsonResponse(data)
+    #return render(request, 'index.html')
 
 def document( request ) :
     template = 'document.html'
@@ -362,13 +389,17 @@ def format_size(size):
         return f"{size / (1024 * 1024 * 1024):.1f} GB"
     
 
-
-
+@require_POST
+@login_required
 @csrf_exempt
 def execute_command(request):
     data = json.loads(request.body.decode('utf-8'))
     command = data.get('command', '').strip()
-    print(command)
+    print('Command Exec : ' , command)
+    if not command:
+        return JsonResponse({
+            'error': 'No command provided or command is empty'
+        }, status=400)
     current_dir = data.get('current_dir', '/')
 
     # Ensure current directory exists
@@ -726,12 +757,7 @@ def execute_python_script(request, script_name):
     return JsonResponse({'output': output})
 
 
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login , logout
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest # type : ignore
-from django.views.decorators.http import require_GET # type: ignore
+
 
 
 
@@ -849,15 +875,18 @@ def login_view(request):
             return JsonResponse({'success': False, 'message': 'Invalid credentials'})
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
-@login_required
+#@login_required
 def check_login_status(request):
     is_logged_in = request.user.is_authenticated
-    username = request.user.username if is_logged_in else ''
-    return JsonResponse({
-        'is_logged_in': is_logged_in,
-        'username': username,
-        'ip': get_client_ip(request)
-    })
+    if is_logged_in :
+        username = request.user.username if is_logged_in else ''
+        return JsonResponse({
+            'is_logged_in': is_logged_in,
+            'username': username,
+            'ip': get_client_ip(request)
+        })
+    request_data = request_info(request)
+    return JsonResponse(request_data)
 
 
 @csrf_exempt
@@ -994,6 +1023,7 @@ def list_commands(request):
     command_files = [f for f in os.listdir(commands_dir) if f.endswith('.js')]
     print('Total Command :' , len(command_files) + 1 ) 
     print('command Name : ' , command_files )
+    command_files.append({'length': len(command_files)})
     return JsonResponse(command_files, safe=False)
 
 
@@ -1017,6 +1047,7 @@ from .models import Report
 import json
 
 @require_POST
+@csrf_exempt
 def submit_report(request):
     try:
         # Parse the incoming JSON data
@@ -1037,6 +1068,7 @@ def submit_report(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 @require_POST
+@csrf_exempt
 def add_report(request):
     try:
         # Parse the JSON data from the request
@@ -1063,13 +1095,16 @@ def list_reports(request):
     report_list = [
         {
             'id': report.id,
+            'header': report.header ,
             'content': report.content,
+            'filename': report.file_name,
             'created_at': report.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             'line_number': report.line_number
         }
         for report in reports
     ]
     return JsonResponse(report_list, safe=False)
+
 def get_report(request, report_id):
     try:
         report = Report.objects.get(id=report_id)
@@ -1083,10 +1118,12 @@ def get_report(request, report_id):
         return HttpResponseNotFound('Report not found')
     
 @require_POST
+@csrf_exempt
 def update_report(request, report_id):
     try:
         report = Report.objects.get(id=report_id)
         data = json.loads(request.body)
+        print(data)
         new_content = data.get('content', report.content)  # Update content if provided
         new_line_number = data.get('line_number', report.line_number)  # Update line number if provided
 
@@ -1099,7 +1136,9 @@ def update_report(request, report_id):
         return HttpResponseNotFound('Report not found')
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
 @require_POST
+@csrf_exempt
 def delete_report(request, report_id):
     try:
         report = Report.objects.get(id=report_id)

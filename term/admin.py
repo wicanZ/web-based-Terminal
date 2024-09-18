@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 #from .models import MyUser
-from .models import QuizResult ,Event , Command , UserCommand
+from .models import QuizResult ,Event , Command , UserCommand ,Report 
 # Register your models here.
 
 admin.site.register(QuizResult)
 
 admin.site.register( Event )
-
+admin.site.register(Report)
 admin.site.register(UserCommand)
 @admin.register(Command)
 class CommandAdmin(admin.ModelAdmin):
